@@ -1,4 +1,7 @@
 /*
+ * 11/19/04 : 1.0 moved to LGPL.
+ *            VBRI header support added, E.B javalayer@javazoom.net
+ * 
  * 12/04/03 : VBR (XING) header support added, E.B javalayer@javazoom.net
  *
  * 02/13/99 : Java Conversion by JavaZOOM , E.B javalayer@javazoom.net
@@ -10,22 +13,21 @@
  *  @(#) header.h 1.7, last edit: 6/15/94 16:55:33
  *  @(#) Copyright (C) 1993, 1994 Tobias Bading (bading@cs.tu-berlin.de)
  *  @(#) Berlin University of Technology
- *---------------------------------------------------------------------------
- * 
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *-----------------------------------------------------------------------
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as published
+ *   by the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *--------------------------------------------------------------------------
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *----------------------------------------------------------------------
  */
 package javazoom.jl.decoder;
 
@@ -173,7 +175,13 @@ public final class Header
 			// calculate framesize and nSlots
 			calculate_framesize();
 			// read framedata:
-			stream.read_frame_data(framesize);
+			int framesizeloaded = stream.read_frame_data(framesize);
+			if ((framesize >=0) && (framesizeloaded != framesize))
+			{
+				// Data loaded does not match to expected framesize,
+				// it might be an ID3v1 TAG. (Fix 11/17/04).
+				throw stream.newBitstreamException(Bitstream.INVALIDFRAME);
+			}
 			if (stream.isSyncCurrentPosition(syncmode))
 			{
 				if (syncmode == Bitstream.INITIAL_SYNC)
@@ -232,10 +240,11 @@ public final class Header
 	 */
 	void parseVBR(byte[] firstframe) throws BitstreamException
 	{
+		// Trying Xing header.
 		String xing = "Xing";
 		byte tmp[] = new byte[4];
 		int offset = 0;
-		// Computer "Xing" offset depending on MPEG version and channels.
+		// Compute "Xing" offset depending on MPEG version and channels.
 		if (h_version == MPEG1) 
 		{
 		  if (h_mode == SINGLE_CHANNEL)  offset=21-4;
@@ -243,13 +252,13 @@ public final class Header
 		} 
 		else 
 		{
-		  if (h_mode == SINGLE_CHANNEL) offset=23-4;
+		  if (h_mode == SINGLE_CHANNEL) offset=13-4;
 		  else offset = 21-4;		  
 		}
 		try
 		{
 			System.arraycopy(firstframe, offset, tmp, 0, 4);
-			// Is "Xing" header ?
+			// Is "Xing" ?
 			if (xing.equals(new String(tmp)))
 			{
 				//Yes.
@@ -258,7 +267,7 @@ public final class Header
 				h_vbr_bytes = -1;
 				h_vbr_scale = -1;
 				h_vbr_toc = new byte[100];
-				
+								
 				int length = 4;
 				// Read flags.
 				byte flags[] = new byte[4];
@@ -290,12 +299,47 @@ public final class Header
 					System.arraycopy(firstframe, offset + length, tmp, 0, tmp.length);
 					h_vbr_scale = (tmp[0] << 24)&0xFF000000 | (tmp[1] << 16)&0x00FF0000 | (tmp[2] << 8)&0x0000FF00 | tmp[3]&0x000000FF;
 					length += 4;	
-				}				
+				}
+				//System.out.println("VBR:"+xing+" Frames:"+ h_vbr_frames +" Size:"+h_vbr_bytes);			
 			}				
 		}
 		catch (ArrayIndexOutOfBoundsException e)
 		{
 			throw new BitstreamException("XingVBRHeader Corrupted",e);
+		}
+		
+		// Trying VBRI header.			
+		String vbri = "VBRI";
+		offset = 36-4;
+		try
+		{
+			System.arraycopy(firstframe, offset, tmp, 0, 4);
+			// Is "VBRI" ?
+			if (vbri.equals(new String(tmp)))
+			{
+				//Yes.
+				h_vbr = true;
+				h_vbr_frames = -1;
+				h_vbr_bytes = -1;
+				h_vbr_scale = -1;
+				h_vbr_toc = new byte[100];
+				// Bytes.				
+				int length = 4 + 6;
+				System.arraycopy(firstframe, offset + length, tmp, 0, tmp.length);
+				h_vbr_bytes = (tmp[0] << 24)&0xFF000000 | (tmp[1] << 16)&0x00FF0000 | (tmp[2] << 8)&0x0000FF00 | tmp[3]&0x000000FF;
+				length += 4;	
+				// Frames.	
+				System.arraycopy(firstframe, offset + length, tmp, 0, tmp.length);
+				h_vbr_frames = (tmp[0] << 24)&0xFF000000 | (tmp[1] << 16)&0x00FF0000 | (tmp[2] << 8)&0x0000FF00 | tmp[3]&0x000000FF;
+				length += 4;	
+				//System.out.println("VBR:"+vbri+" Frames:"+ h_vbr_frames +" Size:"+h_vbr_bytes);
+				// TOC
+				// TODO				
+			}
+		}
+		catch (ArrayIndexOutOfBoundsException e)
+		{
+			throw new BitstreamException("VBRIVBRHeader Corrupted",e);
 		}
 	}
 	

@@ -1,4 +1,8 @@
 /*
+ * 11/19/04  1.0 moved to LGPL.
+ * 
+ * 11/17/04	 Uncomplete frames discarded. E.B, javalayer@javazoom.net 
+ *
  * 12/05/03	 ID3v2 tag returned. E.B, javalayer@javazoom.net 
  *
  * 12/12/99	 Based on Ibitstream. Exceptions thrown on errors,
@@ -12,23 +16,21 @@
  *  @(#) ibitstream.h 1.5, last edit: 6/15/94 16:55:34
  *  @(#) Copyright (C) 1993, 1994 Tobias Bading (bading@cs.tu-berlin.de)
  *  @(#) Berlin University of Technology
- * ----------------------------------------------------------------------
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
  *-----------------------------------------------------------------------
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as published
+ *   by the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *----------------------------------------------------------------------
  */
 
 package javazoom.jl.decoder;
@@ -274,7 +276,25 @@ public final class Bitstream implements BitstreamErrors
 		}
 		catch (BitstreamException ex)
 		{
-			if (ex.getErrorCode()!=STREAM_EOF)
+			if ((ex.getErrorCode()==INVALIDFRAME))
+			{
+				// Try to skip this frame.
+				//System.out.println("INVALIDFRAME");
+				try
+				{
+					closeFrame();
+					result = readNextFrame();
+				}
+				catch (BitstreamException e)
+				{
+					if ((e.getErrorCode()!=STREAM_EOF))
+					{
+						// wrap original exception so stack trace is maintained.
+						throw newBitstreamException(e.getErrorCode(), e);
+					}
+				}
+			}
+			else if ((ex.getErrorCode()!=STREAM_EOF))
 			{
 				// wrap original exception so stack trace is maintained.
 				throw newBitstreamException(ex.getErrorCode(), ex);
@@ -462,14 +482,14 @@ public final class Bitstream implements BitstreamErrors
 	 * Reads the data for the next frame. The frame is not parsed
 	 * until parse frame is called.
 	 */
-	void read_frame_data(int bytesize) throws BitstreamException
+	int read_frame_data(int bytesize) throws BitstreamException
 	{
- 		int		numread = 0;
-
-		readFully(frame_bytes, 0, bytesize);
+ 		int	numread = 0;
+		numread = readFully(frame_bytes, 0, bytesize);
 		framesize = bytesize;
 		wordpointer = -1;
 	    bitindex = -1;
+	    return numread;
 	}
 
   /**
@@ -482,6 +502,16 @@ public final class Bitstream implements BitstreamErrors
 	byte[] byteread = frame_bytes;
 	int bytesize = framesize;
 
+	// Check ID3v1 TAG (True only if last frame).
+	//for (int t=0;t<(byteread.length)-2;t++)
+	//{
+	//	if ((byteread[t]=='T') && (byteread[t+1]=='A') && (byteread[t+2]=='G'))
+	//	{
+	//		System.out.println("ID3v1 detected at offset "+t);
+	//		throw newBitstreamException(INVALIDFRAME, null);
+	//	} 	
+	//}
+	
 	for (int k=0;k<bytesize;k=k+4)
 	{
 		int convert = 0;
@@ -564,9 +594,10 @@ public final class Bitstream implements BitstreamErrors
 	 * @exception BitstreamException is thrown if the specified
 	 *		number of bytes could not be read from the stream.
 	 */
-	private void readFully(byte[] b, int offs, int len)
+	private int readFully(byte[] b, int offs, int len)
 		throws BitstreamException
-	{
+	{		
+		int nRead = 0;
 		try
 		{
 			while (len > 0)
@@ -581,7 +612,7 @@ public final class Bitstream implements BitstreamErrors
 					break;
 					//throw newBitstreamException(UNEXPECTED_EOF, new EOFException());
 				}
-
+				nRead = nRead + bytesread;
 				offs += bytesread;
 				len -= bytesread;
 			}
@@ -590,6 +621,7 @@ public final class Bitstream implements BitstreamErrors
 		{
 			throw newBitstreamException(STREAM_ERROR, ex);
 		}
+		return nRead;
 	}
 
 	/**

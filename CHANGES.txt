@@ -1,5 +1,5 @@
- JavaLayer 0.4
- JavaZOOM 1999-2004
+ JLayer 1.0
+ JavaZOOM 1999-2005
 
  Project Homepage :
    http://www.javazoom.net/javalayer/javalayer.html 
@@ -7,6 +7,19 @@
  JAVA and MP3 online Forums :
    http://www.javazoom.net/services/forums/index.jsp
 -----------------------------------------------------
+
+
+11/28/2004: JLayer 1.0
+-------------------------
+- VBRI frame header (Fraunhofer VBR) support added in Header.java.
+- Frame controls improved. It fixes the following bugs :
+    + ArrayIndexOutOfBound Exception in t_43[] array.
+    + ArrayIndexOutOfBound Exception in huffman_decode() method.
+- Licensing moved from GPL to LGPL : It means that you can use JLayer in
+  your own application without being restricted by GPL license issues.
+  It's more business friendly.
+- JavaLayer renamed into JLayer to be compliant to SUN trademark rules.
+- Tested under JRE 1.5.0. CPU usage < 1%, RAM usage < 12MB under P4/2Ghz.
 
 
 01/02/2004: JavaLayer 0.4

@@ -1,4 +1,6 @@
 /*
+ * 11/19/04	 1.0 moved to LGPL.
+ * 
  * 18/06/01  Michael Scheerer,  Fixed bugs which causes
  *           negative indexes in method huffmann_decode and in method 
  *           dequanisize_sample.
@@ -14,19 +16,19 @@
  * 
  * 02/19/99  Java Conversion by E.B, javalayer@javazoom.net
  *-----------------------------------------------------------------------
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as published
+ *   by the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *----------------------------------------------------------------------
  */
 
@@ -39,6 +41,8 @@ package javazoom.jl.decoder;
  */
 final class LayerIIIDecoder implements FrameDecoder
 {
+	final double d43 = (4.0/3.0);
+	
 	public int[]				scalefac_buffer;
 
 	// MDM: removed, as this wasn't being used.
@@ -786,9 +790,11 @@ final class LayerIIIDecoder implements FrameDecoder
 				  else                h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[2]];
 
 			huffcodetab.huffman_decoder(h, x, y, v, w, br);
-
+		  //if (index >= is_1d.length) System.out.println("i0="+i+"/"+(si.ch[ch].gr[gr].big_values<<1)+" Index="+index+" is_1d="+is_1d.length);
+	      
 	      is_1d[index++] = x[0];
 	      is_1d[index++] = y[0];
+	      
 	      CheckSumHuff = CheckSumHuff + x[0] + y[0];
 	      // System.out.println("x = "+x[0]+" y = "+y[0]);
 		}
@@ -894,13 +900,25 @@ final class LayerIIIDecoder implements FrameDecoder
 	        else
 	        {
 	         int abv = is_1d[j];
-	         if (is_1d[j] > 0) xr_1d[quotien][reste] = g_gain * t_43[abv];
-	         else xr_1d[quotien][reste] = -g_gain * t_43[-abv];
+	         // Pow Array fix (11/17/04)
+	         if (abv < t_43.length)
+	         {
+				if (is_1d[j] > 0) xr_1d[quotien][reste] = g_gain * t_43[abv];
+				else
+				{
+					if (-abv < t_43.length) xr_1d[quotien][reste] = -g_gain * t_43[-abv];
+					else xr_1d[quotien][reste] = -g_gain * (float)Math.pow(-abv, d43);	
+				} 
+	         }
+	         else
+	         {
+				if (is_1d[j] > 0) xr_1d[quotien][reste] = g_gain * (float)Math.pow(abv, d43);
+				else xr_1d[quotien][reste] = -g_gain * (float)Math.pow(-abv, d43);	         	
+	         }
 	        }
 	   }
 
-		// apply formula per block type
-
+	   // apply formula per block type
 	   for (j=0; j<nonzero[ch]; j++)
 	   {
             // Modif E.B 02/22/99
@@ -1029,11 +1047,17 @@ final class LayerIIIDecoder implements FrameDecoder
 	                out_1d[index] = xr_1d[quotien][reste];
 	            }
 				// REORDERING FOR REST SWITCHED SHORT
-					for( sfb=3,sfb_start=sfBandIndex[sfreq].s[3],
-		  				 sfb_lines=sfBandIndex[sfreq].s[4] - sfb_start;
-		  				 sfb < 13; sfb++,sfb_start = sfBandIndex[sfreq].s[sfb],
-					     sfb_lines = sfBandIndex[sfreq].s[sfb+1] - sfb_start )
-	            		 {
+				/*for( sfb=3,sfb_start=sfBandIndex[sfreq].s[3],
+					 sfb_lines=sfBandIndex[sfreq].s[4] - sfb_start;
+					 sfb < 13; sfb++,sfb_start = sfBandIndex[sfreq].s[sfb],
+					 sfb_lines = sfBandIndex[sfreq].s[sfb+1] - sfb_start )
+					 {*/						   
+		 		for( sfb=3; sfb < 13; sfb++)
+	            	 {						   
+							//System.out.println("sfreq="+sfreq+" sfb="+sfb+" sfBandIndex="+sfBandIndex.length+" sfBandIndex[sfreq].s="+sfBandIndex[sfreq].s.length);
+							sfb_start = sfBandIndex[sfreq].s[sfb];
+							sfb_lines = sfBandIndex[sfreq].s[sfb+1] - sfb_start;
+
 						   int sfb_start3 = (sfb_start << 2) - sfb_start;
 
 							for(freq=0, freq3=0; freq<sfb_lines;
