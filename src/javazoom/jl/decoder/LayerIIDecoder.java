@@ -18,6 +18,14 @@
  *----------------------------------------------------------------------
  */
 
+/**********************************************************************
+ *   date   programmers         comment                               *
+ *                                                                    *
+ * 29/05/01  Michael Scheerer,  Fixed some C++ to Java porting bugs.  *  
+ *                                                                    *
+ *                                                                    *
+ **********************************************************************/
+
 package javazoom.jl.decoder;
 
 
@@ -57,7 +65,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	protected void readScaleFactorSelection()
 	{
   		for (int i = 0; i < num_subbands; ++i)
-  		  ((SubbandLayer2)subbands[i]).read_scalefactor_selection(stream, crc[0]);		
+  		  ((SubbandLayer2)subbands[i]).read_scalefactor_selection(stream, crc);		
 	}
 	
 	
@@ -476,8 +484,9 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  protected int				allocation;
 	  protected int				scfsi;
 	  protected float			scalefactor1, scalefactor2, scalefactor3;
-	  protected int[] 			codelength = {0};  
-	  protected float[][] 		groupingtable = {{0},{0}} ;
+	  protected int[] 			codelength = {0}; 
+	  protected float groupingtable[][] = new float[2][]; 
+	  //protected float[][] 		groupingtable = {{0},{0}} ;
 	  protected float[]			factor = {0.0f};
 	  protected int				groupnumber;
 	  protected int 			samplenumber;
@@ -542,7 +551,8 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	   *
 	   */
 	   protected void prepare_sample_reading(Header header, int allocation,
-											 float[][] groupingtable,
+											 //float[][] groupingtable,
+											   int channel,
 	                                         float[] factor, int[] codelength,
 	                                         float[] c, float[] d)
 	   {
@@ -557,7 +567,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 		 if (channel_bitrate == 1 || channel_bitrate == 2)
 	 		 {
 				 // table 3-B.2c or 3-B.2d
-				 groupingtable[0] = table_cd_groupingtables[allocation];
+				 groupingtable[channel] = table_cd_groupingtables[allocation];
 				 factor[0] = table_cd_factor[allocation];
 				 codelength[0] = table_cd_codelength[allocation];
 				 c[0] = table_cd_c[allocation];
@@ -568,7 +578,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 				 // tables 3-B.2a or 3-B.2b
 				 if (subbandnumber <= 2)
 				 {
-					groupingtable[0] = table_ab1_groupingtables[allocation];
+					groupingtable[channel] = table_ab1_groupingtables[allocation];
 					factor[0] = table_ab1_factor[allocation];
 					codelength[0] = table_ab1_codelength[allocation];
 	 		     	c[0] = table_ab1_c[allocation];
@@ -576,7 +586,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	 		     }
 				 else
 				 {
-	 		     	groupingtable[0] = table_ab234_groupingtables[allocation];
+	 		     	groupingtable[channel] = table_ab234_groupingtables[allocation];
 					if (subbandnumber <= 10)
 					{
 						factor[0] = table_ab2_factor[allocation];
@@ -652,7 +662,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 		     scalefactor2 = scalefactor3 = scalefactors[stream.get_bits(6)];
 		     break;
 	    	}
-	    	prepare_sample_reading(header, allocation, groupingtable,
+	    	prepare_sample_reading(header, allocation, 0,
 				    factor, codelength, c, d);
 	  }
 	  }
@@ -670,13 +680,24 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 			samplecode += samplecode << 1;
 			float[] target = samples;
 			float[] source = groupingtable[0];
-		    int tmp = 0;
+		  /*
+		  int tmp = 0;
 			int temp = 0;
 			target[tmp++] = source[samplecode + temp];
 			temp++;
 			target[tmp++] = source[samplecode + temp];
 			temp++;
 			target[tmp] = source[samplecode + temp];
+			*/
+			//Bugfix:
+			int tmp = 0;
+			int temp = samplecode;
+			target[tmp] = source[temp];
+			temp++;tmp++;
+			target[tmp] = source[temp];
+			temp++;tmp++;
+			target[tmp] = source[temp];
+			
 			// memcpy (samples, groupingtable + samplecode, 3 * sizeof (real));
 		 }
 		 else
@@ -702,7 +723,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	    {
 	  	 float sample = samples[samplenumber];
 	  
-	  	 if (groupingtable != null)
+	  	 if (groupingtable[0] == null)
 	  		sample = (sample + d[0]) * c[0];
 	  	 if (groupnumber <= 4)
 	  		sample *= scalefactor1;
@@ -813,7 +834,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 		  {
 			 float sample = samples[samplenumber];
 		
-			 if (groupingtable != null)
+			 if (groupingtable[0] == null)
 				sample = (sample + d[0]) * c[0];
 		       if (channels == OutputChannels.BOTH_CHANNELS)
 			   {
@@ -873,9 +894,9 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  protected int			channel2_allocation;
 	  protected int 		channel2_scfsi;
 	  protected float	 	channel2_scalefactor1, channel2_scalefactor2, channel2_scalefactor3;
-	  protected boolean	 	channel2_grouping;
+	  //protected boolean	 	channel2_grouping;  ???? Never used!
 	  protected int[] 		channel2_codelength = {0};
-	  protected float[][] 	channel2_groupingtable = {{0},{0}};
+	  //protected float[][] 	channel2_groupingtable = {{0},{0}};
 	  protected float[]	 	channel2_factor = {0};
 	  protected float[] 	channel2_samples;
 	  protected float[]	 	channel2_c = {0};
@@ -957,7 +978,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	        							   scalefactors[stream.get_bits(6)];
 	    	   break;
 	  	 }
-	  	 prepare_sample_reading(header, channel2_allocation, channel2_groupingtable,
+	  	 prepare_sample_reading(header, channel2_allocation, 1,
 	                             channel2_factor, channel2_codelength, channel2_c,
 	                             channel2_d);
 	   }
@@ -971,11 +992,12 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	    boolean returnvalue = super.read_sampledata(stream);
 	  
 	    if (channel2_allocation != 0)
-	  	 if (channel2_groupingtable != null)
+	  	 if (groupingtable[1] != null)
 		 {
 	  		int samplecode = stream.get_bits(channel2_codelength[0]);
 	  		// create requantized samples:
 	  		samplecode += samplecode << 1;
+	  	/*
 	  		float[] target = channel2_samples;
 	  		float[] source = channel2_groupingtable[0];
 			int tmp = 0;
@@ -986,6 +1008,17 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 			temp++;
 	  		target[tmp] = source[samplecode + temp];
 	  		// memcpy (channel2_samples, channel2_groupingtable + samplecode, 3 * sizeof (real));
+	  	*/
+	  	float[] target = channel2_samples;
+	    float[] source = groupingtable[1];
+			int tmp = 0;
+			int temp = samplecode;
+	  	target[tmp] = source[temp];
+			temp++;tmp++;
+	  	target[tmp] = source[temp];
+			temp++;tmp++;
+	  	target[tmp] = source[temp];
+	  	
 	      } 
 		  else 
 		  {
@@ -1009,7 +1042,7 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	    {
 	  	 float sample = channel2_samples[samplenumber - 1];
 	  
-	  	 if (channel2_groupingtable != null)
+	  	 if (groupingtable[1] == null)
 	  		sample = (sample + channel2_d[0]) * channel2_c[0];
 	  
 	  	 if (groupnumber <= 4)

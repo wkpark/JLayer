@@ -36,10 +36,11 @@ class LayerIDecoder implements FrameDecoder
 	
 	protected int					num_subbands;
 	protected Subband[]				subbands;
-	protected Crc16[]				crc	= null;	// new Crc16[1] to enable CRC checking.
+	protected Crc16				crc	= null;	// new Crc16[1] to enable CRC checking.
 	
 	public LayerIDecoder()
 	{
+		crc = new Crc16();
 	}
 	
 	public void create(Bitstream stream0, Header header0,
@@ -52,7 +53,7 @@ class LayerIDecoder implements FrameDecoder
 	  	filter2        = filterb;
 	  	buffer         = buffer0;
 	  	which_channels = which_ch0;
-		
+		  
 	}
 	
 	
@@ -102,7 +103,7 @@ class LayerIDecoder implements FrameDecoder
 	{
 		// start to read audio data:
   	    for (int i = 0; i < num_subbands; ++i)
-  	      subbands[i].read_allocation(stream, header, crc[0]);
+  	      subbands[i].read_allocation(stream, header, crc);
 		
 	}
 

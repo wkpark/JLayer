@@ -1,6 +1,5 @@
 -----------------------------------------------------
-                  JavaLayer 0.0.8
-          (jdk1.1.x, jdk 1.2.x, jdk1.3.x)
+                  JavaLayer 0.0.9
 
  Project Homepage :
    http://www.javazoom.net/javalayer/javalayer.html 
@@ -10,7 +9,7 @@
 -----------------------------------------------------
 
 Note : Before running JavaLayer you must set PATH and CLASSPATH for JAVA
-       and you must add jl008.jar to the CLASSPATH
+       and you must add jl009.jar to the CLASSPATH
 
 
 How to run the MP3TOWAV converter ?
