@@ -1,15 +1,16 @@
 /*
  * 04/01/00 Fixes for running under build 23xx Microsoft JVM. mdm.
+ * 
  * 19/12/99 Performance improvements to compute_pcm_samples().  
  *			Mat McGowan. mdm@techie.com. 
- *-----------------------------------------------------------------------
- * 16/02/99 Java Conversion by E.B , ebsp@iname.com, JavaLayer
  *
- *-----------------------------------------------------------------------
+ * 16/02/99 Java Conversion by E.B , javalayer@javazoom.net
+ *
  *  @(#) synthesis_filter.h 1.8, last edit: 6/15/94 16:52:00
  *  @(#) Copyright (C) 1993, 1994 Tobias Bading (bading@cs.tu-berlin.de)
  *  @(#) Berlin University of Technology
  *
+ *-----------------------------------------------------------------------
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -43,7 +44,7 @@ final class SynthesisFilter
   private float[]			 samples;			// 32 new subband samples
   private int				 channel;
   private float 			 scalefactor;
-	private float[]			eq;
+  private float[]			 eq;
 	
 	/**
 	 * Quality value for controlling CPU usage/quality tradeoff. 
@@ -86,8 +87,7 @@ final class SynthesisFilter
   
   public void setEQ(float[] eq0)
   {
-	 this.eq = eq0;
-	 
+	 this.eq = eq0;	 
 	 if (eq==null)
 	 {
 		 eq = new float[32];
@@ -152,14 +152,14 @@ final class SynthesisFilter
    * Inject Sample.
    */
   public void input_sample(float sample, int subbandnumber)
-  {	 	 	
-	  samples[subbandnumber] = eq[subbandnumber]*sample;	
+  {	 	 		  
+	  samples[subbandnumber] = eq[subbandnumber]*sample;
   }
 
   public void input_samples(float[] s)
   {
 	  for (int i=31; i>=0; i--)
-	  {
+	  {		
 		 samples[i] = s[i]*eq[i];
 	  }
   }

@@ -1,13 +1,18 @@
 /*
+ * 12/05/03	 ID3v2 tag returned. E.B, javalayer@javazoom.net 
+ *
  * 12/12/99	 Based on Ibitstream. Exceptions thrown on errors,
- *			 Tempoarily removed seek functionality. mdm@techie.com
+ *			 Temporary removed seek functionality. mdm@techie.com
  *
- * 02/12/99 : Java Conversion by E.B , ebsp@iname.com , JavaLayer
+ * 02/12/99 : Java Conversion by E.B , javalayer@javazoom.net
  *
- *----------------------------------------------------------------------
+ * 04/14/97 : Added function prototypes for new syncing and seeking
+ * mechanisms. Also made this file portable. Changes made by Jeff Tsay
+ *
  *  @(#) ibitstream.h 1.5, last edit: 6/15/94 16:55:34
  *  @(#) Copyright (C) 1993, 1994 Tobias Bading (bading@cs.tu-berlin.de)
  *  @(#) Berlin University of Technology
+ * ----------------------------------------------------------------------
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,19 +28,16 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *  Changes made by Jeff Tsay :
- *  04/14/97 : Added function prototypes for new syncing and seeking
- *  mechanisms. Also made this file portable.
  *-----------------------------------------------------------------------
  */
 
 package javazoom.jl.decoder;
 
-import java.io.InputStream;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.EOFException;
+import java.io.InputStream;
 import java.io.PushbackInputStream;
-import java.io.ByteArrayOutputStream;
 
 
 /**
@@ -48,15 +50,14 @@ import java.io.ByteArrayOutputStream;
  */
 public final class Bitstream implements BitstreamErrors
 {
-
 	/**
-	 * Syncrhronization control constant for the initial
+	 * Synchronization control constant for the initial
 	 * synchronization to the start of a frame.
 	 */
 	static byte		INITIAL_SYNC = 0;
 
 	/**
-	 * Syncrhronization control constant for non-iniital frame
+	 * Synchronization control constant for non-initial frame
 	 * synchronizations.
 	 */
 	static byte		STRICT_SYNC = 1;
@@ -66,7 +67,6 @@ public final class Bitstream implements BitstreamErrors
 	 * Maximum size of the frame buffer.
 	 */
 	private static final int	BUFFER_INT_SIZE = 433;
-
 
 	/**
 	 * The frame buffer that holds the data for the current frame.
@@ -98,6 +98,11 @@ public final class Bitstream implements BitstreamErrors
 	 * The current specified syncword
 	 */
 	private int				syncword;
+	
+	/**
+	 * Audio header position in stream.
+	 */
+	private int				header_pos = 0;
 
 	/**
 	 *
@@ -121,7 +126,9 @@ public final class Bitstream implements BitstreamErrors
 
 	private Crc16[]					crc = new Crc16[1];
 
-	//private ByteArrayOutputStream	_baos = null; // E.B
+	private byte[]					rawid3v2 = null;
+
+	private boolean					firstframe = true;
 
 
 	/**
@@ -132,24 +139,114 @@ public final class Bitstream implements BitstreamErrors
 	 */
 	public Bitstream(InputStream in)
 	{
-		if (in==null)
-			throw new NullPointerException("in");
-
-		source = new PushbackInputStream(in, 1024);
-
-		//_baos = new ByteArrayOutputStream(); // E.B
-
+		if (in==null) throw new NullPointerException("in");
+		in = new BufferedInputStream(in);		
+		loadID3v2(in);
+		firstframe = true;
+		//source = new PushbackInputStream(in, 1024);
+		source = new PushbackInputStream(in, BUFFER_INT_SIZE*4);
+		
 		closeFrame();
 		//current_frame_number = -1;
 		//last_frame_number = -1;
 	}
 
+	/**
+	 * Return position of the first audio header.
+	 * @return size of ID3v2 tag frames.
+	 */
+	public int header_pos()
+	{
+		return header_pos;
+	}
+	
+	/**
+	 * Load ID3v2 frames.
+	 * @param in MP3 InputStream.
+	 * @author JavaZOOM
+	 */
+	private void loadID3v2(InputStream in)
+	{		
+		int size = -1;
+		try
+		{
+			// Read ID3v2 header (10 bytes).
+			in.mark(10);			
+			size = readID3v2Header(in);
+			header_pos = size;			
+		}
+		catch (IOException e)
+		{}
+		finally
+		{
+			try
+			{
+				// Unread ID3v2 header (10 bytes).
+				in.reset();
+			}
+			catch (IOException e)
+			{}
+		}
+		// Load ID3v2 tags.
+		try
+		{
+			if (size > 0)
+			{
+				rawid3v2 = new byte[size];
+				in.read(rawid3v2,0,rawid3v2.length);
+			}			
+		}
+		catch (IOException e)
+		{}
+	}
+	
+	/**
+	 * Parse ID3v2 tag header to find out size of ID3v2 frames. 
+	 * @param in MP3 InputStream
+	 * @return size of ID3v2 frames + header
+	 * @throws IOException
+	 * @author JavaZOOM
+	 */
+	private int readID3v2Header(InputStream in) throws IOException
+	{		
+		byte[] id3header = new byte[4];
+		int size = -10;
+		in.read(id3header,0,3);
+		// Look for ID3v2
+		if ( (id3header[0]=='I') && (id3header[1]=='D') && (id3header[2]=='3'))
+		{
+			in.read(id3header,0,3);
+			int majorVersion = id3header[0];
+			int revision = id3header[1];
+			in.read(id3header,0,4);
+			size = (int) (id3header[0] << 21) + (id3header[1] << 14) + (id3header[2] << 7) + (id3header[3]);
+		}
+		return (size+10);
+	}
+	
+	/**
+	 * Return raw ID3v2 frames + header.
+	 * @return ID3v2 InputStream or null if ID3v2 frames are not available.
+	 */
+	public InputStream getRawID3v2()
+	{
+		if (rawid3v2 == null) return null;
+		else
+		{
+			ByteArrayInputStream bain = new ByteArrayInputStream(rawid3v2);		
+			return bain;
+		}
+	}
+
+	/**
+	 * Close the Bitstream.
+	 * @throws BitstreamException
+	 */
 	public void close() throws BitstreamException
 	{
 		try
 		{
 			source.close();
-			//_baos = null;
 		}
 		catch (IOException ex)
 		{
@@ -168,6 +265,12 @@ public final class Bitstream implements BitstreamErrors
 		try
 		{
 			result = readNextFrame();
+			// E.B, Parse VBR (if any) first frame.
+			if (firstframe == true)
+			{
+				result.parseVBR(frame_bytes);
+				firstframe = false;
+			}			
 		}
 		catch (BitstreamException ex)
 		{
@@ -180,19 +283,24 @@ public final class Bitstream implements BitstreamErrors
 		return result;
 	}
 
+	/**
+	 * Read next MP3 frame.
+	 * @return MP3 frame header.
+	 * @throws BitstreamException
+	 */
 	private Header readNextFrame() throws BitstreamException
 	{
 		if (framesize == -1)
 		{
 			nextFrame();
 		}
-
 		return header;
 	}
 
 
 	/**
-	 *
+	 * Read next MP3 frame.
+	 * @throws BitstreamException
 	 */
 	private void nextFrame() throws BitstreamException
 	{
@@ -220,6 +328,9 @@ public final class Bitstream implements BitstreamErrors
 		}
 	}
 
+	/**
+	 * Close MP3 frame.
+	 */
 	public void closeFrame()
 	{
 		framesize = -1;
@@ -282,7 +393,6 @@ public final class Bitstream implements BitstreamErrors
 		return new BitstreamException(errorcode, throwable);
 	}
 
-
   /**
    * Get next 32 bits from bitstream.
    * They are stored in the headerstring.
@@ -294,14 +404,10 @@ public final class Bitstream implements BitstreamErrors
 	{
 		boolean sync;
 		int headerstring;
-
-		// read additinal 2 bytes
+		// read additional 2 bytes
 		int bytesRead = readBytes(syncbuf, 0, 3);
 
-		if (bytesRead!=3)
-			throw newBitstreamException(STREAM_EOF, null);
-
-		//_baos.write(syncbuf, 0, 3); // E.B
+		if (bytesRead!=3) throw newBitstreamException(STREAM_EOF, null);
 
 		headerstring = ((syncbuf[0] << 16) & 0x00FF0000) | ((syncbuf[1] << 8) & 0x0000FF00) | ((syncbuf[2] << 0) & 0x000000FF);
 
@@ -311,8 +417,6 @@ public final class Bitstream implements BitstreamErrors
 
 			if (readBytes(syncbuf, 3, 1)!=1)
 				throw newBitstreamException(STREAM_EOF, null);
-
-			//_baos.write(syncbuf, 3, 1); // E.B
 
 			headerstring |= (syncbuf[3] & 0x000000FF);
 
@@ -391,10 +495,8 @@ public final class Bitstream implements BitstreamErrors
 		if (k+3<bytesize) b3 = byteread[k+3];
 		framebuffer[b++] = ((b0 << 24) &0xFF000000) | ((b1 << 16) & 0x00FF0000) | ((b2 << 8) & 0x0000FF00) | (b3 & 0x000000FF);
 	}
-
 	wordpointer = 0;
     bitindex = 0;
-
   }
 
   /**
@@ -404,7 +506,6 @@ public final class Bitstream implements BitstreamErrors
    */
   public int get_bits(int number_of_bits)
   {
-
   	int				returnvalue = 0;
   	int 			sum = bitindex + number_of_bits;
 
@@ -426,7 +527,7 @@ public final class Bitstream implements BitstreamErrors
 	   return returnvalue;
     }
 
-    // Magouille a Voir
+    // E.B : Check that ?
     //((short[])&returnvalue)[0] = ((short[])wordpointer + 1)[0];
     //wordpointer++; // Added by me!
     //((short[])&returnvalue + 1)[0] = ((short[])wordpointer)[0];
@@ -519,13 +620,4 @@ public final class Bitstream implements BitstreamErrors
 		}
 		return totalBytesRead;
 	}
-
-	/**
-	 * Returns ID3v2 tags.
-	 */
-	/*public ByteArrayOutputStream getID3v2()
-	{
-		return _baos;
-	}*/
-
 }

@@ -1,36 +1,39 @@
 /*
  * 16/11/99 Renamed class, added javadoc, and changed table
  *			name from String to 3 chars. mdm@techie.com
- * 02/15/99 Java Conversion by E.B, ebsp@iname.com, JavaLayer
+ * 02/15/99 Java Conversion by E.B, javalayer@javazoom.net
  *
- *---------------------------------------------------------------------------
- * huffman.h
- *
- *	Adapted from the ISO MPEG Audio Subgroup Software Simulation
+ * 04/19/97 : Adapted from the ISO MPEG Audio Subgroup Software Simulation
  *  Group's public c source for its MPEG audio decoder. Miscellaneous
  *  changes by Jeff Tsay (ctsay@pasteur.eecs.berkeley.edu).
+ *-----------------------------------------------------------------------
+ * Copyright (c) 1991 MPEG/audio software simulation group, All Rights Reserved
+ * MPEG/audio coding/decoding software, work in progress              
+ *   NOT for public distribution until verified and approved by the   
+ *   MPEG/audio committee.  For further information, please contact   
+ *   Davis Pan, 508-493-2241, e-mail: pan@3d.enet.dec.com             
+ *                                                                    
+ * VERSION 4.1                                                        
+ *   changes made since last update:                                  
+ *   date   programmers         comment                        
+ *  27.2.92 F.O.Witte (ITT Intermetall)				                  
+ *  8/24/93 M. Iwadare          Changed for 1 pass decoding.          
+ *  7/14/94 J. Koller		    useless 'typedef' before huffcodetab  removed
+ *-----------------------------------------------------------------------
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- *  Last modified : 04/19/97
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- **********************************************************************
- Copyright (c) 1991 MPEG/audio software simulation group, All Rights Reserved
- huffman.h
- **********************************************************************
- **********************************************************************
- * MPEG/audio coding/decoding software, work in progress              *
- *   NOT for public distribution until verified and approved by the   *
- *   MPEG/audio committee.  For further information, please contact   *
- *   Davis Pan, 508-493-2241, e-mail: pan@3d.enet.dec.com             *
- *                                                                    *
- * VERSION 4.1                                                        *
- *   changes made since last update:                                  *
- *   date   programmers                comment                        *
- *  27.2.92 F.O.Witte (ITT Intermetall)				                  *
- *  8/24/93 M. Iwadare          Changed for 1 pass decoding.          *
- *  7/14/94 J. Koller		useless 'typedef' before huffcodetab  	  *
- *				removed				      			                  *
- **********************************************************************
- *----------------------------------------------------------------------------
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *----------------------------------------------------------------------
  */
 
 package javazoom.jl.decoder;

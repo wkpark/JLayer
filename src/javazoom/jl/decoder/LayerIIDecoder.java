@@ -1,7 +1,14 @@
 /*
- * 12/12/99		Initial version. Adapted from javalayer.java
- *				and Subband*.java. mdm@techie.com
-/*-----------------------------------------------------------------------
+ * 29/05/01  Michael Scheerer,  Fixed some C++ to Java porting bugs. 
+ *
+ * 16/07/01  Michael Scheerer, Catched a bug in method
+ *           read_sampledata, which causes an outOfIndexException.
+ * 
+ * 12/12/99  Initial version. Adapted from javalayer.java
+ *			 and Subband*.java. mdm@techie.com
+ *
+ * 02/28/99  Initial version : javalayer.java by E.B
+ * -----------------------------------------------------------------------
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -18,26 +25,11 @@
  *----------------------------------------------------------------------
  */
 
-/**********************************************************************
- *   date   programmers         comment                               *
- *                                                                    *
- * 29/05/01  Michael Scheerer,  Fixed some C++ to Java porting bugs.  *  
- *                                                                    *
- *                                                                    *
- * 16/07/01  Michael Scheerer, Catched a bug in method                *
- *           read_sampledata, which causes an outOfIndexException.    *
- *                                                                    *
- **********************************************************************
- *                                                                    *
- **********************************************************************/
-
 package javazoom.jl.decoder;
-
 
 /**
  * Implements decoding of MPEG Audio Layer II frames. 
  */
-
 class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 {
 
@@ -1067,6 +1059,4 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 	  	return returnvalue;
 	  }
 	}
-	
-	
 }

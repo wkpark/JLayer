@@ -1,13 +1,10 @@
 /* 
  * 12/12/99  Added appendSamples() method for efficiency. MDM.
  * 15/02/99 ,Java Conversion by E.B ,ebsp@iname.com, JavaLayer
- *----------------------------------------------------------------------------- 
- * obuffer.h
  *
- *    Declarations for output buffer, includes operating system
+ *   Declarations for output buffer, includes operating system
  *   implementation of the virtual Obuffer. Optional routines
  *   enabling seeks and stops added by Jeff Tsay. 
- *   
  *
  *  @(#) obuffer.h 1.8, last edit: 6/15/94 16:51:56
  *  @(#) Copyright (C) 1993, 1994 Tobias Bading (bading@cs.tu-berlin.de)
@@ -18,7 +15,7 @@
  *
  *  LinuxObuffer class written by
  *  Louis P. Kruger (lpkruger@phoenix.princeton.edu)
- *
+ *----------------------------------------------------------------------------- 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or

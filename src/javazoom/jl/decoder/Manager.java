@@ -15,8 +15,6 @@
  *----------------------------------------------------------------------
  */
 
-
-
 package javazoom.jl.decoder;
 
 /**
@@ -24,7 +22,6 @@ package javazoom.jl.decoder;
  * 
  * Manages a number of controls.
  */
-
 public class Manager //implements Control
 {
 	public void addControl(Control c)
@@ -43,7 +40,5 @@ public class Manager //implements Control
 	}
 	
 	// control interface delegates to a managed control
-	
-	
 	
 }

@@ -15,8 +15,6 @@
  *----------------------------------------------------------------------------
  */
 
-
-
 package javazoom.jl.decoder;
 
 import java.io.IOException;
@@ -27,7 +25,6 @@ import java.io.IOException;
  * Class to describe a seekable data source. 
  *  
  */
-
 public interface Source
 {
 	

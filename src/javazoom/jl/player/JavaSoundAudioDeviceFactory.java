@@ -1,6 +1,6 @@
 /*
  * 29/01/00		Initial version. mdm@techie.com
-/*-----------------------------------------------------------------------
+ *-----------------------------------------------------------------------
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -17,11 +17,9 @@
  *----------------------------------------------------------------------
  */
 
-
 package javazoom.jl.player;
 
 import javazoom.jl.decoder.JavaLayerException;
-
 
 /**
  * This class is responsible for creating instances of the
@@ -29,7 +27,6 @@ import javazoom.jl.decoder.JavaLayerException;
  * and tested dynamically as not all systems will have support
  * for JavaSound, or they may have the incorrect version. 
  */
-
 public class JavaSoundAudioDeviceFactory extends AudioDeviceFactory
 {
 	private boolean tested = false;

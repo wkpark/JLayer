@@ -1,6 +1,6 @@
 /*
- * 1/12/99		Initial version.	mdm@techie.com
-/*-----------------------------------------------------------------------
+ * 01/12/99		Initial version.	mdm@techie.com
+ *-----------------------------------------------------------------------
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -16,13 +16,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *----------------------------------------------------------------------
  */
-
-
-
+ 
 package javazoom.jl.decoder;
-
-import java.io.IOException;
-
 
 /**
  * The <code>Decoder</code> class encapsulates the details of
@@ -32,7 +27,6 @@ import java.io.IOException;
  * @version 0.0.7 12/12/99
  * @since	0.0.5
  */
-
 public class Decoder implements DecoderErrors
 {
 	static private final Params DEFAULT_PARAMS = new Params();
@@ -119,6 +113,7 @@ public class Decoder implements DecoderErrors
 		equalizer.setFrom(eq);
 		
 		float[] factors = equalizer.getBandFactors();
+
 		if (filter1!=null)
 			filter1.setEQ(factors);
 		
@@ -204,7 +199,7 @@ public class Decoder implements DecoderErrors
 	 */
 	public int getOutputBlockSize()
 	{
-		return output.OBUFFERSIZE;
+		return Obuffer.OBUFFERSIZE;
 	}
 	
 	

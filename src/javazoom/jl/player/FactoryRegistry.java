@@ -1,6 +1,6 @@
 /*
  * 29/01/00		Initial version. mdm@techie.com
-/*-----------------------------------------------------------------------
+ *-----------------------------------------------------------------------
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -17,14 +17,12 @@
  *----------------------------------------------------------------------
  */
 
-
 package javazoom.jl.player;
 
 import java.util.Hashtable;
 import java.util.Enumeration;
 
 import javazoom.jl.decoder.*;
-
 
 /**
  * The <code>FactoryRegistry</code> class stores the factories

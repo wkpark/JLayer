@@ -1,41 +1,42 @@
-/**
- * 02/19/99 Java Conversion by E.B
- *-------------------------------------------------
- * layer3.h
+/*
+ * 18/06/01  Michael Scheerer,  Fixed bugs which causes
+ *           negative indexes in method huffmann_decode and in method 
+ *           dequanisize_sample.
  *
- *   Declarations for the Layer III decoder object
- *-------------------------------------------------
+ * 16/07/01  Michael Scheerer, Catched a bug in method
+ *           huffmann_decode, which causes an outOfIndexException.
+ *           Cause : Indexnumber of 24 at SfBandIndex,
+ *           which has only a length of 22. I have simply and dirty 
+ *           fixed the index to <= 22, because I'm not really be able
+ *           to fix the bug. The Indexnumber is taken from the MP3 
+ *           file and the origin Ma-Player with the same code works 
+ *           well.      
+ * 
+ * 02/19/99  Java Conversion by E.B, javalayer@javazoom.net
+ *-----------------------------------------------------------------------
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *----------------------------------------------------------------------
  */
-/**********************************************************************
- *   date   programmers         comment                               *
- *                                                                    *
- * 18/06/01  Michael Scheerer,  Fixed bugs which causes               *
- *           negative indexes in method huffmann_decode and in method *
- *           dequanisize_sample.                                      *
- *                                                                    *
- * 16/07/01  Michael Scheerer, Catched a bug in method                *
- *           huffmann_decode, which causes an outOfIndexException.    *
- *           Cause : Indexnumber of 24 at SfBandIndex,                *
- *           which has only a length of 22. I have simply and dirty   *
- *           fixed the index to <= 22, because I'm not really be able *
- *           to fix the bug. The Indexnumber is taken from the MP3    *
- *           file and the origin Ma-Player with the same code works   *
- *           well.                                                    *
- *                                                                    *
- **********************************************************************
- *                                                                    *
- **********************************************************************/
 
 package javazoom.jl.decoder;
-
-import java.io.IOException;
 
 /**
  * Class Implementing Layer 3 Decoder.
  *
  * @since 0.0
  */
-
 final class LayerIIIDecoder implements FrameDecoder
 {
 	public int[]				scalefac_buffer;

@@ -1,5 +1,5 @@
------------------------------------------------------
-                  JavaLayer 0.3.0
+ JavaLayer 0.4
+ JavaZOOM 1999-2004
 
  Project Homepage :
    http://www.javazoom.net/javalayer/javalayer.html 
@@ -10,9 +10,9 @@
 
 DESCRIPTION :
 -----------
-JavaLayer is a 100% JAVA library that decodes/plays/converts MPEG 1/2/2.5 Layer 1/2/3
-(i.e. MP3) in real time. This is a non-commercial project and anyone can add his 
-contribution. JavaLayer is licensed under GPL (see LICENSE.txt).
+JavaLayer is a library that decodes/plays/converts MPEG 1/2/2.5 Layer 1/2/3
+(i.e. MP3) in real time for the JAVA(tm) platform. This is a non-commercial project 
+and anyone can add his contribution. JavaLayer is licensed under GPL (see LICENSE.txt).
 
 
 FAQ : 
@@ -20,7 +20,7 @@ FAQ :
 
 - How to install Javalayer ?
   Before running JavaLayer you must set PATH and CLASSPATH for JAVA
-  and you must add jl020.jar to the CLASSPATH.
+  and you must add jl0.4.jar to the CLASSPATH.
 
 - Do I need JMF to run JavaLayer player ?
   No, JMF is not required. You just need a JVM JavaSound 1.0 compliant.
@@ -28,7 +28,7 @@ FAQ :
 
 - How to run the MP3TOWAV converter ?
   java javazoom.jl.converter.jlc -v -p output.wav yourfile.mp3
-  (Note : MP3TOWAV converter should work under jdk1.1.x, jdk1.2.x, jdk1.3.x)
+  (Note : MP3TOWAV converter should work under jdk1.1.x or higher)
 
 - How to run the simple MP3 player ?
   java javazoom.jl.player.jlp localfile.mp3
@@ -46,11 +46,31 @@ FAQ :
 - Does JavaLayer support MPEG 2.5 ?
   Yes, it works fine for all files generated with LAME.
 
-- How to get ID3v1 or ID3v2 tags from JavaLayer API ?
-  The API doesn't provide this feature (yet).
+- Does JavaLayer support VBR ?
+  Yes, It supports XING VBR header too. 
 
-- How much memory JavaLayer needs to run ?
+- How to get ID3v1 or ID3v2 tags from JavaLayer API ?
+  The API provides a getRawID3v2() method to get an InputStream on ID3v2 frames.
+
+- How to skip frames to have a seek feature ?
+  See javazoom.jl.player.advanced.jlap source to learn how to skip frames.
+
+- How much memory/CPU JavaLayer needs to run ?
   Here are our benchmark notes :
     - Heap use range : 1380KB to 1900KB - 370 classes loaded. 
-    - Footprint : ~8MB under WinNT4 + J2SE 1.3 (Hotspot).
+    - Footprint : ~8MB under WinNT4/Win2K + J2SE 1.3 (Hotspot).
+                  ~10MB under WinNT4/Win2K + J2SE 1.4.1 (Hotspot).
     - CPU usage : ~12% under PIII 800Mhz/WinNT4+J2SE 1.3 (Hotspot).
+                  ~8% under PIII 1Ghz/Win2K+J2SE 1.3.1 (Hotspot).
+                  ~12% under PIII 1Ghz/Win2K+J2SE 1.4.1 (Hotspot).
+
+- How to contact JavaLayer developers ?
+  Try to post a thread on Java&MP3 online forums at :
+  http://www.javazoom.net/services/forums/index.jsp
+  You can also contact us at javalayer@javazoom.net for contributions.
+ 
+
+KNOWN PROBLEMS :
+--------------
+99% of MP3 plays well with JavaLayer but some (1%) return an ArrayIndexOutOfBoundsException 
+while playing. It's a bug (hard to fix) in the decoder.

@@ -1,6 +1,6 @@
 /*
  * 29/01/00		Initial version. mdm@techie.com
-/*-----------------------------------------------------------------------
+ *-----------------------------------------------------------------------
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -17,7 +17,6 @@
  *----------------------------------------------------------------------
  */
 
-
 package javazoom.jl.player;
 
 import javazoom.jl.decoder.*;
@@ -25,7 +24,7 @@ import javazoom.jl.decoder.*;
 /**
  * The <code>AudioDevice</code> interface provides an abstraction for
  * a device capable of sounding audio samples. Samples are written to 
- * the device wia the {@link write() write()} method. The device assumes
+ * the device wia the write() method. The device assumes
  * that these samples are signed 16-bit samples taken at the output frequency
  * of the decoder. If the decoder outputs more than one channel, the samples for
  * each channel are assumed to appear consecutively, with the lower numbered

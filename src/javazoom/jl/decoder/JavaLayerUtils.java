@@ -1,6 +1,6 @@
 /*
  * 12/12/99		Initial version.	mdm@techie.com
-/*-----------------------------------------------------------------------
+ *-----------------------------------------------------------------------
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -17,19 +17,16 @@
  *----------------------------------------------------------------------
  */
 
-
 package javazoom.jl.decoder;
 
-import java.lang.reflect.Array; 
-
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InvalidClassException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.ObjectStreamException;
 import java.io.OutputStream;
+import java.lang.reflect.Array;
 
 /**
  * The JavaLayerUtils class is not strictly part of the JavaLayer API.
@@ -37,7 +34,6 @@ import java.io.OutputStream;
  * 
  * @author MDM
  */
-
 public class JavaLayerUtils
 {
 	static private JavaLayerHook	hook = null;

@@ -1,7 +1,6 @@
 /*
  * 12/12/99 Original verion. mdm@techie.com.
- */
-/*-----------------------------------------------------------------------
+ *-----------------------------------------------------------------------
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -27,18 +26,16 @@ import javazoom.jl.decoder.*;
 /**
  * The <code>Converter</code> class implements the conversion of
  * an MPEG audio file to a .WAV file. To convert an MPEG audio stream,
- * just create an instance of this class and call the {@link convert() convert()}
+ * just create an instance of this class and call the convert()
  * method, passing in the names of the input and output files. You can
  * pass in optional <code>ProgressListener</code> and
  * <code>Decoder.Params</code> objects also to customize the conversion.
  *
  * @author	MDM		12/12/99
  * @since	0.0.7
- *
  */
 public class Converter
 {
-
 	/**
 	 * Creates a new converter instance.
 	 */

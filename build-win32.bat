@@ -1,5 +1,5 @@
 rem #######################################################
-rem #         JavaLayer 0.3.0 WIN32 Build Script
+rem #         JavaLayer 0.4 WIN32 Build Script
 rem #
 rem # Project Homepage :
 rem #   http://www.javazoom.net/javalayer/javalayer.html 
@@ -10,8 +10,8 @@ rem #
 rem #######################################################
 
 rem # JAVA_HOME and JL must be set below
-set JAVA_HOME=c:\jdk1.3
-set JL=c:\JavaLayer0.3
+set JAVA_HOME=c:\jdk1.3.1
+set JL=c:\JavaLayer0.4
 
 rem #---------------------------
 rem # Do not modify lines below
@@ -38,5 +38,5 @@ javac -classpath %JL%\classes -d %JL%\classes *.java
 
 rem # JAR Generation
 cd %JL%\classes
-jar cvf ..\jl030.jar *
+jar cvf ..\jl04.jar *
 cd %JL%

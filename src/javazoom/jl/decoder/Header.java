@@ -1,7 +1,8 @@
 /*
- * 02/13/99 : Java Conversion by E.B , ebsp@iname.com
+ * 12/04/03 : VBR (XING) header support added, E.B javalayer@javazoom.net
  *
- *---------------------------------------------------------------------------
+ * 02/13/99 : Java Conversion by JavaZOOM , E.B javalayer@javazoom.net
+ *
  * Declarations for MPEG header class
  * A few layer III, MPEG-2 LSF, and seeking modifications made by Jeff Tsay.
  * Last modified : 04/19/97
@@ -9,7 +10,8 @@
  *  @(#) header.h 1.7, last edit: 6/15/94 16:55:33
  *  @(#) Copyright (C) 1993, 1994 Tobias Bading (bading@cs.tu-berlin.de)
  *  @(#) Berlin University of Technology
- *
+ *---------------------------------------------------------------------------
+ * 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -29,11 +31,7 @@ package javazoom.jl.decoder;
 
 /**
  * Class for extracting information from a frame header.
- *
- *
  */
-// TODO: move strings into resources
-
 public final class Header
 {
 	public  static final int[][]	frequencies =
@@ -67,6 +65,14 @@ public final class Header
 	private int				h_sample_frequency;
 	private int				h_number_of_subbands, h_intensity_stereo_bound;
 	private boolean			h_copyright, h_original;
+	// VBR support added by E.B
+	private double[] 		h_vbr_time_per_frame = {-1, 384, 1152, 1152};
+	private boolean			h_vbr;
+	private int				h_vbr_frames;
+	private int				h_vbr_scale;
+	private int				h_vbr_bytes;
+	private byte[]			h_vbr_toc;
+	
 	private byte			syncmode = Bitstream.INITIAL_SYNC;
 	private Crc16			crc;
 
@@ -104,127 +110,195 @@ public final class Header
 	/**
 	 * Read a 32-bit header from the bitstream.
 	 */
-	void read_header(Bitstream stream, Crc16[] crcp)
-		throws BitstreamException
+	void read_header(Bitstream stream, Crc16[] crcp) throws BitstreamException
 	{
-	  int headerstring;
-	  int channel_bitrate;
-
-	  boolean sync = false;
-
-	  do
-	  {
-
-		headerstring = stream.syncHeader(syncmode);
-		_headerstring = headerstring; // E.B
-
-		if (syncmode==Bitstream.INITIAL_SYNC)
+		int headerstring;
+		int channel_bitrate;
+		boolean sync = false;
+		do
 		{
+			headerstring = stream.syncHeader(syncmode);
+			_headerstring = headerstring; // E.B
+			if (syncmode == Bitstream.INITIAL_SYNC)
+			{
 				h_version = ((headerstring >>> 19) & 1);
-				if(((headerstring >>> 20) & 1) == 0)	// SZD: MPEG2.5 detection
-					if(h_version == MPEG2_LSF)
+				if (((headerstring >>> 20) & 1) == 0) // SZD: MPEG2.5 detection
+					if (h_version == MPEG2_LSF)
 						h_version = MPEG25_LSF;
 					else
 						throw stream.newBitstreamException(Bitstream.UNKNOWN_ERROR);
-
-
 				if ((h_sample_frequency = ((headerstring >>> 10) & 3)) == 3)
 				{
 					throw stream.newBitstreamException(Bitstream.UNKNOWN_ERROR);
-	 			}
-		}
-
-			h_layer   = 4 - (headerstring >>> 17) & 3;
-		h_protection_bit = (headerstring >>> 16) & 1;
-			h_bitrate_index  = (headerstring >>> 12) & 0xF;
-		h_padding_bit = (headerstring >>> 9) & 1;
+				}
+			}
+			h_layer = 4 - (headerstring >>> 17) & 3;
+			h_protection_bit = (headerstring >>> 16) & 1;
+			h_bitrate_index = (headerstring >>> 12) & 0xF;
+			h_padding_bit = (headerstring >>> 9) & 1;
 			h_mode = ((headerstring >>> 6) & 3);
-		h_mode_extension = (headerstring >>> 4) & 3;
-		if (h_mode == JOINT_STEREO) h_intensity_stereo_bound = (h_mode_extension << 2) + 4;
-		else h_intensity_stereo_bound = 0;		// should never be used
-		if (((headerstring >>> 3) & 1) == 1) h_copyright = true;
-		if (((headerstring >>> 2) & 1) == 1) h_original = true;
-
-
-		// calculate number of subbands:
-		if (h_layer == 1) h_number_of_subbands = 32;
-		else
-		{
-		  channel_bitrate = h_bitrate_index;
-		  // calculate bitrate per channel:
-		  if (h_mode != SINGLE_CHANNEL)
-			if (channel_bitrate == 4) channel_bitrate = 1;
-		    else channel_bitrate -= 4;
-
-		  if ((channel_bitrate == 1) || (channel_bitrate == 2))
-			if (h_sample_frequency == THIRTYTWO) h_number_of_subbands = 12;
-			else h_number_of_subbands = 8;
-		  else
-			if ((h_sample_frequency == FOURTYEIGHT) || ((channel_bitrate >= 3) &&
-		  													  	  (channel_bitrate <= 5)))
-				h_number_of_subbands = 27;
+			h_mode_extension = (headerstring >>> 4) & 3;
+			if (h_mode == JOINT_STEREO)
+				h_intensity_stereo_bound = (h_mode_extension << 2) + 4;
 			else
-				h_number_of_subbands = 30;
-		 }
-			 if (h_intensity_stereo_bound > h_number_of_subbands) h_intensity_stereo_bound = h_number_of_subbands;
-		 // calculate framesize and nSlots
-		 calculate_framesize();
-
-		// read framedata:
-		stream.read_frame_data(framesize);
-
-		if (stream.isSyncCurrentPosition(syncmode))
+				h_intensity_stereo_bound = 0; // should never be used
+			if (((headerstring >>> 3) & 1) == 1)
+				h_copyright = true;
+			if (((headerstring >>> 2) & 1) == 1)
+				h_original = true;
+			// calculate number of subbands:
+			if (h_layer == 1)
+				h_number_of_subbands = 32;
+			else
+			{
+				channel_bitrate = h_bitrate_index;
+				// calculate bitrate per channel:
+				if (h_mode != SINGLE_CHANNEL)
+					if (channel_bitrate == 4)
+						channel_bitrate = 1;
+					else
+						channel_bitrate -= 4;
+				if ((channel_bitrate == 1) || (channel_bitrate == 2))
+					if (h_sample_frequency == THIRTYTWO)
+						h_number_of_subbands = 12;
+					else
+						h_number_of_subbands = 8;
+				else if ((h_sample_frequency == FOURTYEIGHT) || ((channel_bitrate >= 3) && (channel_bitrate <= 5)))
+					h_number_of_subbands = 27;
+				else
+					h_number_of_subbands = 30;
+			}
+			if (h_intensity_stereo_bound > h_number_of_subbands)
+				h_intensity_stereo_bound = h_number_of_subbands;
+			// calculate framesize and nSlots
+			calculate_framesize();
+			// read framedata:
+			stream.read_frame_data(framesize);
+			if (stream.isSyncCurrentPosition(syncmode))
+			{
+				if (syncmode == Bitstream.INITIAL_SYNC)
+				{
+					syncmode = Bitstream.STRICT_SYNC;
+					stream.set_syncword(headerstring & 0xFFF80CC0);
+				}
+				sync = true;
+			}
+			else
+			{
+				stream.unreadFrame();
+			}
+		}
+		while (!sync);
+		stream.parse_frame();
+		if (h_protection_bit == 0)
 		{
-			 if (syncmode==Bitstream.INITIAL_SYNC)
-			 {
-				syncmode = Bitstream.STRICT_SYNC;
-				stream.set_syncword(headerstring & 0xFFF80CC0);
-			 }
-			 sync = true;
+			// frame contains a crc checksum
+			checksum = (short) stream.get_bits(16);
+			if (crc == null)
+				crc = new Crc16();
+			crc.add_bits(headerstring, 16);
+			crcp[0] = crc;
 		}
 		else
+			crcp[0] = null;
+		if (h_sample_frequency == FOURTYFOUR_POINT_ONE)
 		{
-			stream.unreadFrame();
+			/*
+				if (offset == null)
+			  {
+				  int max = max_number_of_frames(stream);
+				  offset = new int[max];
+			     for(int i=0; i<max; i++) offset[i] = 0;
+			  }
+			  // E.B : Investigate more
+			  int cf = stream.current_frame();
+			  int lf = stream.last_frame();
+			  if ((cf > 0) && (cf == lf))
+			  {
+				   offset[cf] = offset[cf-1] + h_padding_bit;
+			  }
+			  else
+			  {
+				       offset[0] = h_padding_bit;
+			  }
+			*/
 		}
-	  }
-	  while (!sync);
-
-	  stream.parse_frame();
-
-	  if (h_protection_bit == 0)
-	  {
-	   // frame contains a crc checksum
-	   checksum = (short) stream.get_bits(16);
-	   if (crc == null)
-	     crc = new Crc16();
-	   crc.add_bits(headerstring, 16);
-	   crcp[0] = crc;
-	  }
-	  else crcp[0] = null;
-	  if (h_sample_frequency == FOURTYFOUR_POINT_ONE)
-	  {
-	   /*
-	  	if (offset == null)
-	     {
-	  	  int max = max_number_of_frames(stream);
-	  	  offset = new int[max];
-	        for(int i=0; i<max; i++) offset[i] = 0;
-	     }
-	     // Bizarre, y avait ici une acollade ouvrante
-	     int cf = stream.current_frame();
-	     int lf = stream.last_frame();
-	     if ((cf > 0) && (cf == lf))
-	     {
-	  	   offset[cf] = offset[cf-1] + h_padding_bit;
-	     }
-	     else
-	     {
-		       offset[0] = h_padding_bit;
-	     }
-	  */
-	  }
 	}
 
+	/**
+	 * Parse frame to extract optionnal VBR frame.
+	 * @param firstframe
+	 * @author E.B (javalayer@javazoom.net)
+	 */
+	void parseVBR(byte[] firstframe) throws BitstreamException
+	{
+		String xing = "Xing";
+		byte tmp[] = new byte[4];
+		int offset = 0;
+		// Computer "Xing" offset depending on MPEG version and channels.
+		if (h_version == MPEG1) 
+		{
+		  if (h_mode == SINGLE_CHANNEL)  offset=21-4;
+		  else offset=36-4;
+		} 
+		else 
+		{
+		  if (h_mode == SINGLE_CHANNEL) offset=23-4;
+		  else offset = 21-4;		  
+		}
+		try
+		{
+			System.arraycopy(firstframe, offset, tmp, 0, 4);
+			// Is "Xing" header ?
+			if (xing.equals(new String(tmp)))
+			{
+				//Yes.
+				h_vbr = true;
+				h_vbr_frames = -1;
+				h_vbr_bytes = -1;
+				h_vbr_scale = -1;
+				h_vbr_toc = new byte[100];
+				
+				int length = 4;
+				// Read flags.
+				byte flags[] = new byte[4];
+				System.arraycopy(firstframe, offset + length, flags, 0, flags.length);
+				length += flags.length;
+				// Read number of frames (if available).
+				if ((flags[3] & (byte) (1 << 0)) != 0)
+				{
+					System.arraycopy(firstframe, offset + length, tmp, 0, tmp.length);
+					h_vbr_frames = (tmp[0] << 24)&0xFF000000 | (tmp[1] << 16)&0x00FF0000 | (tmp[2] << 8)&0x0000FF00 | tmp[3]&0x000000FF;
+					length += 4;	
+				}
+				// Read size (if available).
+				if ((flags[3] & (byte) (1 << 1)) != 0)
+				{
+					System.arraycopy(firstframe, offset + length, tmp, 0, tmp.length);
+					h_vbr_bytes = (tmp[0] << 24)&0xFF000000 | (tmp[1] << 16)&0x00FF0000 | (tmp[2] << 8)&0x0000FF00 | tmp[3]&0x000000FF;
+					length += 4;	
+				}
+				// Read TOC (if available).
+				if ((flags[3] & (byte) (1 << 2)) != 0)
+				{
+					System.arraycopy(firstframe, offset + length, h_vbr_toc, 0, h_vbr_toc.length);
+					length += h_vbr_toc.length;	
+				}
+				// Read scale (if available).
+				if ((flags[3] & (byte) (1 << 3)) != 0)
+				{
+					System.arraycopy(firstframe, offset + length, tmp, 0, tmp.length);
+					h_vbr_scale = (tmp[0] << 24)&0xFF000000 | (tmp[1] << 16)&0x00FF0000 | (tmp[2] << 8)&0x0000FF00 | tmp[3]&0x000000FF;
+					length += 4;	
+				}				
+			}				
+		}
+		catch (ArrayIndexOutOfBoundsException e)
+		{
+			throw new BitstreamException("XingVBRHeader Corrupted",e);
+		}
+	}
+	
 	// Functions to query header contents:
 	/**
 	 * Returns version.
@@ -274,6 +348,24 @@ public final class Header
 	 * Returns Original.
 	 */
 	public boolean original() { return h_original; }
+
+	/**
+	 * Return VBR.
+	 * @return true if VBR header is found
+	 */
+	public boolean vbr() { return h_vbr; }
+
+	/**
+	 * Return VBR scale.
+	 * @return scale of -1 if not available
+	 */
+	public int vbr_scale() { return h_vbr_scale; }
+
+	/**
+	 * Return VBR TOC.
+	 * @return vbr toc ot null if not available
+	 */
+	public byte[] vbr_toc() { return h_vbr_toc; }
 
 	/**
 	 * Returns Checksum flag.
@@ -375,36 +467,60 @@ public final class Header
 
 	/**
 	 * Returns the maximum number of frames in the stream.
+	 * @param streamsize
+	 * @return number of frames
 	 */
 	public int max_number_of_frames(int streamsize)  // E.B
 	{
-		  if ((framesize + 4 - h_padding_bit) == 0) return 0;
-		  else return(streamsize / (framesize + 4 - h_padding_bit));
+		if (h_vbr == true) return h_vbr_frames;
+		else
+		{
+			if ((framesize + 4 - h_padding_bit) == 0) return 0;
+			else return(streamsize / (framesize + 4 - h_padding_bit));
+		}
 	}
 
 	/**
 	 * Returns the maximum number of frames in the stream.
+	 * @param streamsize
+	 * @return number of frames
 	 */
 	public int min_number_of_frames(int streamsize) // E.B
 	{
-	  	if ((framesize + 5 - h_padding_bit) == 0) return 0;
-	  	else return(streamsize / (framesize + 5 - h_padding_bit));
+		if (h_vbr == true) return h_vbr_frames;
+		else
+		{
+	  		if ((framesize + 5 - h_padding_bit) == 0) return 0;
+	  		else return(streamsize / (framesize + 5 - h_padding_bit));
+		}
 	}
 
 
 	/**
 	 * Returns ms/frame.
+	 * @return milliseconds per frame
 	 */
 	public float ms_per_frame() // E.B
 	{
-		float ms_per_frame_array[][] = {{8.707483f,  8.0f, 12.0f},
-		 						        {26.12245f, 24.0f, 36.0f},
-	   	                                {26.12245f, 24.0f, 36.0f}};
-		return(ms_per_frame_array[h_layer-1][h_sample_frequency]);
+		if (h_vbr == true)
+		{			
+			double tpf = h_vbr_time_per_frame[layer()] / frequency();
+			if ((h_version == MPEG2_LSF) || (h_version == MPEG25_LSF)) tpf /= 2;
+			return ((float) (tpf * 1000));
+		}
+		else
+		{
+			float ms_per_frame_array[][] = {{8.707483f,  8.0f, 12.0f},
+											{26.12245f, 24.0f, 36.0f},
+											{26.12245f, 24.0f, 36.0f}};
+			return(ms_per_frame_array[h_layer-1][h_sample_frequency]);
+		}
 	}
 
 	/**
 	 * Returns total ms.
+	 * @param streamsize
+	 * @return total milliseconds
 	 */
 	public float total_ms(int streamsize) // E.B
 	{
@@ -480,15 +596,44 @@ public final class Header
 	  };
 
 	/**
-	 * Returns Bitrate.
+	 * Return Bitrate.
+	 * @return bitrate in bps
 	 */
 	public String bitrate_string()
 	{
-	  return bitrate_str[h_version][h_layer - 1][h_bitrate_index];
+		if (h_vbr == true)
+		{
+			return Integer.toString(bitrate()/1000)+" kb/s";		
+		}
+	  else return bitrate_str[h_version][h_layer - 1][h_bitrate_index];
+	}
+
+	/**
+	 * Return Bitrate.
+	 * @return bitrate in bps and average bitrate for VBR header
+	 */
+	public int bitrate()
+	{
+		if (h_vbr == true)
+		{
+			return ((int) ((h_vbr_bytes * 8) / (ms_per_frame() * h_vbr_frames)))*1000;		
+		}
+		else return bitrates[h_version][h_layer - 1][h_bitrate_index];
+	}
+
+	/**
+	 * Return Instant Bitrate.
+	 * Bitrate for VBR is not constant.
+	 * @return bitrate in bps
+	 */
+	public int bitrate_instant()
+	{
+		return bitrates[h_version][h_layer - 1][h_bitrate_index];
 	}
 
 	/**
 	 * Returns Frequency
+	 * @return frequency string in kHz
 	 */
 	public String sample_frequency_string()
 	{
@@ -540,6 +685,7 @@ public final class Header
 
 	/**
 	 * Returns Version.
+	 * @return MPEG-1 or MPEG-2 LSF or MPEG-2.5 LSF
 	 */
 	public String version_string()
 	{
@@ -557,16 +703,16 @@ public final class Header
 
 	/**
 	 * Returns the number of subbands in the current frame.
+	 * @return number of subbands
 	 */
 	public int number_of_subbands() {return h_number_of_subbands;}
 
 	/**
 	 * Returns Intensity Stereo.
-	 * Layer II joint stereo only).
+	 * (Layer II joint stereo only).
 	 * Returns the number of subbands which are in stereo mode,
 	 * subbands above that limit are in intensity stereo mode.
+	 * @return intensity
 	 */
 	public int intensity_stereo_bound() {return h_intensity_stereo_bound;}
-
-
 }

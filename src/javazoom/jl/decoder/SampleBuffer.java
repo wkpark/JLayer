@@ -2,7 +2,7 @@
  * 12/12/99  Initial Version based on FileObuffer.	mdm@techie.com.
  * 
  * FileObuffer:
- * 15/02/99 ,Java Conversion by E.B ,ebsp@iname.com, JavaLayer
+ * 15/02/99  Java Conversion by E.B ,javalayer@javazoom.net
  *
  *----------------------------------------------------------------------------- 
  *  This program is free software; you can redistribute it and/or modify
@@ -21,14 +21,11 @@
  *----------------------------------------------------------------------------
  */
 
-
 package javazoom.jl.decoder;
 
 /**
  * The <code>SampleBuffer</code> class implements an output buffer
  * that provides storage for a fixed size block of samples. 
- * 
- * 
  */
 public class SampleBuffer extends Obuffer
 {
@@ -130,6 +127,4 @@ public class SampleBuffer extends Obuffer
    */
   public void set_stop_flag()
   {}
-
-	
 }

@@ -1,11 +1,11 @@
 /*
- * 02/12/99 : Java Conversion by E.B , ebsp@iname.com, JavaLayer
+ * 02/12/99 : Java Conversion by E.B , javalayer@javazoom.net
  *
- *-----------------------------------------------------------------------
  *  @(#) crc.h 1.5, last edit: 6/15/94 16:55:32
  *  @(#) Copyright (C) 1993, 1994 Tobias Bading (bading@cs.tu-berlin.de)
  *  @(#) Berlin University of Technology
- *
+ *  -----------------------------------------------------------------------
+ * 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or

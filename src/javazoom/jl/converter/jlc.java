@@ -1,12 +1,28 @@
-/* 12/12/99 JavaLayer 0.0.7		mdm@techie.com
+/* 
+ * 29/01/00		Initial version. mdm@techie.com
+ * 
+ * 12/12/99     JavaLayer 0.0.7 mdm@techie.com
+ * 
+ * 14/02/99     MPEG_Args Based Class - E.B
  * Adapted from javalayer and MPEG_Args.
  * Doc'ed and integerated with JL converter. Removed
  * Win32 specifics from original Maplay code.
+ *-----------------------------------------------------------------------
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- * MPEG_Args Based Class - E.B 14/02/99 , JavaLayer
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *----------------------------------------------------------------------
  */
-
-
 
 package javazoom.jl.converter;
 
@@ -20,7 +36,6 @@ import javazoom.jl.decoder.*;
  *
  * @since 0.0.7
  */
-
 public class jlc
 {
 
@@ -178,7 +193,7 @@ public class jlc
 		*/
 	   public boolean Usage()
 	   {
-	  	 System.out.println("JavaLayer Converter V0.0.8 :");
+	  	 System.out.println("JavaLayer Converter :");
 		 System.out.println("  -v[x]         verbose mode. ");
 		 System.out.println("                default = 2");
 	     /* System.out.println("  -s         write u-law samples at 8 kHz rate to stdout");
