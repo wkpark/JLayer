@@ -6,7 +6,26 @@
  *   Declarations for the Layer III decoder object
  *-------------------------------------------------
  */
-
+/**********************************************************************
+ *   date   programmers         comment                               *
+ *                                                                    *
+ * 18/06/01  Michael Scheerer,  Fixed bugs which causes               *
+ *           negative indexes in method huffmann_decode and in method *
+ *           dequanisize_sample.                                      *  
+ *                                                                    *
+ * 16/07/01  Michael Scheerer, Catched a bug in method                *
+ *           huffmann_decode, which causes an outOfIndexException.    *
+ *           Cause : Indexnumber of 24 at SfBandIndex,                *
+ *           which has only a length of 22. I have simply and dirty   *
+ *           fixed the index to <= 22, because I'm not really be able *
+ *           to fix the bug. The Indexnumber is taken from the MP3    *
+ *           file and the origin Ma-Player with the same code works   *
+ *           well.                                                    *
+ *                                                                    *
+ **********************************************************************
+ *                                                                    *
+ **********************************************************************/
+ 
 package javazoom.jl.decoder;
 
 import java.io.IOException;
@@ -711,6 +730,9 @@ final class LayerIIIDecoder implements FrameDecoder
 		int region1Start;
 		int region2Start;
 	    int index;
+	    
+	    int buf, buf1;
+	    
 	 	huffcodetab h;
 	
 		// Find region boundary for short block case
@@ -723,12 +745,15 @@ final class LayerIIIDecoder implements FrameDecoder
 			region1Start = 36;  // sfb[9/3]*3=36
 			region2Start = 576; // No Region2 for short block case
 	
-		} else {          // Find region boundary for long block case
-	
-			region1Start = sfBandIndex[sfreq].l[si.ch[ch].gr[gr].region0_count
-	                                             + 1];
-			region2Start = sfBandIndex[sfreq].l[si.ch[ch].gr[gr].region0_count +
-											   si.ch[ch].gr[gr].region1_count + 2]; /* MI */
+	  } else {          // Find region boundary for long block case
+	  
+	    buf = si.ch[ch].gr[gr].region0_count + 1;
+	    buf1 = buf + si.ch[ch].gr[gr].region1_count + 1;
+	    
+	    if(buf1 > sfBandIndex[sfreq].l.length - 1) buf1 = sfBandIndex[sfreq].l.length - 1;
+	   
+			region1Start = sfBandIndex[sfreq].l[buf];
+			region2Start = sfBandIndex[sfreq].l[buf1]; /* MI */
 	   }
 	
 	   index = 0;
@@ -781,7 +806,9 @@ final class LayerIIIDecoder implements FrameDecoder
 		   nonzero[ch] = index;
 	   else
 	   	nonzero[ch] = 576;
-	
+	   
+	   if (index < 0) index = 0;
+	   
 	   // may not be necessary
 	   for (; index<576; index++)
    		is_1d[index] = 0;
@@ -945,6 +972,8 @@ final class LayerIIIDecoder implements FrameDecoder
             // Modif E.B 02/22/99
             int reste = j % SSLIMIT;
             int quotien = (int) ((j-reste)/SSLIMIT);
+            if(reste < 0) reste = 0;
+            if(quotien < 0) quotien = 0;
 	     	xr_1d[quotien][reste] = 0.0f;
 	   }
 	

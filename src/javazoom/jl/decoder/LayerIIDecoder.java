@@ -24,6 +24,11 @@
  * 29/05/01  Michael Scheerer,  Fixed some C++ to Java porting bugs.  *  
  *                                                                    *
  *                                                                    *
+ * 16/07/01  Michael Scheerer, Catched a bug in method                *
+ *           read_sampledata, which causes an outOfIndexException.    *
+ *                                                                    *
+ **********************************************************************
+ *                                                                    *
  **********************************************************************/
 
 package javazoom.jl.decoder;
@@ -692,6 +697,9 @@ class LayerIIDecoder extends LayerIDecoder implements FrameDecoder
 			//Bugfix:
 			int tmp = 0;
 			int temp = samplecode;
+			
+			if(temp > source.length - 3) temp = source.length - 3;
+			
 			target[tmp] = source[temp];
 			temp++;tmp++;
 			target[tmp] = source[temp];
