@@ -1,5 +1,5 @@
 rem #######################################################
-rem #         JavaLayer 0.2.0 WIN32 Build Script
+rem #         JavaLayer 0.3.0 WIN32 Build Script
 rem #
 rem # Project Homepage :
 rem #   http://www.javazoom.net/javalayer/javalayer.html 
@@ -11,7 +11,7 @@ rem #######################################################
 
 rem # JAVA_HOME and JL must be set below
 set JAVA_HOME=c:\jdk1.3
-set JL=c:\JavaLayer0.2
+set JL=c:\JavaLayer0.3
 
 rem #---------------------------
 rem # Do not modify lines below
@@ -21,18 +21,22 @@ set PATH=%PATH%;%JAVA_HOME%\bin
 set JLDECODERSRC=%JL%\src\javazoom\jl\decoder
 set JLCONVERTERSRC=%JL%\src\javazoom\jl\converter
 set JLSIMPLEPLAYER=%JL%\src\javazoom\jl\player
+set JLADVPLAYER=%JL%\src\javazoom\jl\player\advanced
 javac -classpath %CLASSPATH%;%JL%\classes -d %JL%\classes %JLDECODERSRC%\*.java
 javac -classpath %CLASSPATH%;%JL%\classes -d %JL%\classes %JLCONVERTERSRC%\*.java
 cd %JLDECODERSRC%
 copy *.ser %JL%\classes\javazoom\jl\decoder
 
-rem # MP3 Simple Player support :
+rem # MP3 Simple + Advanced Player support :
 rem #
 rem # Comment both lines below for JDK1.1.x or JDK 1.2.x
 cd %JLSIMPLEPLAYER%
 javac -classpath %JL%\classes -d %JL%\classes *.java
 
+cd %JLADVPLAYER%
+javac -classpath %JL%\classes -d %JL%\classes *.java
+
 rem # JAR Generation
 cd %JL%\classes
-jar cvf ..\jl020.jar *
+jar cvf ..\jl030.jar *
 cd %JL%

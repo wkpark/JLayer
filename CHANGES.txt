@@ -1,3 +1,9 @@
+08/04/2003: JavaLayer 0.3.0
+---------------------------
+
+- Advanced threaded player classes added.
+
+
 04/01/2002: JavaLayer 0.2.0
 ---------------------------
 

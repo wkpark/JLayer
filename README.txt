@@ -1,5 +1,5 @@
 -----------------------------------------------------
-                  JavaLayer 0.2.0
+                  JavaLayer 0.3.0
 
  Project Homepage :
    http://www.javazoom.net/javalayer/javalayer.html 
@@ -35,6 +35,9 @@ FAQ :
    or
   java javazoom.jl.player.jlp -url http://www.aserver.com/remotefile.mp3
   Note : MP3 simple player only works under JVM that supports JavaSound 1.0 (i.e JDK1.3.x+)
+
+- How to run the advanced (threaded) MP3 player ?
+  java javazoom.jl.player.advanced.jlap localfile.mp3
 
 - Does simple MP3 player support streaming ?
   Yes, use the following command to play music from stream :
