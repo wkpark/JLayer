@@ -1,0 +1,22 @@
+-----------------------------------------------------
+                  JavaLayer 0.0.8
+          (jdk1.1.x, jdk 1.2.x, jdk1.3.x)
+
+ Project Homepage :
+   http://www.javazoom.net/javalayer/javalayer.html 
+
+ Developer Homepage :
+   http://sourceforge.net/project/?group_id=1344
+-----------------------------------------------------
+
+Note : Before running JavaLayer you must set PATH and CLASSPATH for JAVA
+       and you must add jl008.jar to the CLASSPATH
+
+
+How to run the MP3TOWAV converter ?
+  java javazoom.jl.converter.jlc -v -p output.wav yourfile.mp3
+  (Note : MP3TOWAV converter should work under jdk1.1.x, jdk1.2.x, jdk1.3.x)
+
+How to run the simple MP3 player ?
+  java javazoom.jl.player.jlp yourfile.mp3
+  (Note : MP3 simple player only works under JVM that supports JavaSound 1.0 (i.e JDK1.3.x))
