@@ -1,5 +1,5 @@
 -----------------------------------------------------
-                  JavaLayer 0.0.9
+                  JavaLayer 0.1.0
 
  Project Homepage :
    http://www.javazoom.net/javalayer/javalayer.html 
@@ -9,7 +9,7 @@
 -----------------------------------------------------
 
 Note : Before running JavaLayer you must set PATH and CLASSPATH for JAVA
-       and you must add jl009.jar to the CLASSPATH
+       and you must add jl010.jar to the CLASSPATH
 
 
 How to run the MP3TOWAV converter ?
@@ -17,5 +17,11 @@ How to run the MP3TOWAV converter ?
   (Note : MP3TOWAV converter should work under jdk1.1.x, jdk1.2.x, jdk1.3.x)
 
 How to run the simple MP3 player ?
-  java javazoom.jl.player.jlp yourfile.mp3
+  java javazoom.jl.player.jlp localfile.mp3
+   or
+  java javazoom.jl.player.jlp -url http://www.aserver.com/remotefile.mp3
   (Note : MP3 simple player only works under JVM that supports JavaSound 1.0 (i.e JDK1.3.x))
+
+Does simple MP3 player support streaming ?
+  Yes, use the following command to play music from stream :
+  java javazoom.jl.player.jlp -url http://www.shoutcastserver.com:8000
