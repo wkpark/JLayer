@@ -35,6 +35,8 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.EOFException;
 import java.io.PushbackInputStream;
+import java.io.ByteArrayOutputStream;
+
 
 /**
  * The <code>Bistream</code> class is responsible for parsing
@@ -64,6 +66,7 @@ public final class Bitstream implements BitstreamErrors
 	 * Maximum size of the frame buffer.
 	 */
 	private static final int	BUFFER_INT_SIZE = 433;
+
 
 	/**
 	 * The frame buffer that holds the data for the current frame.
@@ -118,6 +121,9 @@ public final class Bitstream implements BitstreamErrors
 
 	private Crc16[]					crc = new Crc16[1];
 
+	//private ByteArrayOutputStream	_baos = null; // E.B
+
+
 	/**
 	 * Construct a IBitstream that reads data from a
 	 * given InputStream.
@@ -131,6 +137,8 @@ public final class Bitstream implements BitstreamErrors
 
 		source = new PushbackInputStream(in, 1024);
 
+		//_baos = new ByteArrayOutputStream(); // E.B
+
 		closeFrame();
 		//current_frame_number = -1;
 		//last_frame_number = -1;
@@ -141,6 +149,7 @@ public final class Bitstream implements BitstreamErrors
 		try
 		{
 			source.close();
+			//_baos = null;
 		}
 		catch (IOException ex)
 		{
@@ -288,8 +297,11 @@ public final class Bitstream implements BitstreamErrors
 
 		// read additinal 2 bytes
 		int bytesRead = readBytes(syncbuf, 0, 3);
+
 		if (bytesRead!=3)
 			throw newBitstreamException(STREAM_EOF, null);
+
+		//_baos.write(syncbuf, 0, 3); // E.B
 
 		headerstring = ((syncbuf[0] << 16) & 0x00FF0000) | ((syncbuf[1] << 8) & 0x0000FF00) | ((syncbuf[2] << 0) & 0x000000FF);
 
@@ -299,6 +311,8 @@ public final class Bitstream implements BitstreamErrors
 
 			if (readBytes(syncbuf, 3, 1)!=1)
 				throw newBitstreamException(STREAM_EOF, null);
+
+			//_baos.write(syncbuf, 3, 1); // E.B
 
 			headerstring |= (syncbuf[3] & 0x000000FF);
 
@@ -318,7 +332,8 @@ public final class Bitstream implements BitstreamErrors
 
 		if (syncmode == INITIAL_SYNC)
 		{
-			sync =  ((headerstring & 0xFFF00000) == 0xFFF00000);
+			//sync =  ((headerstring & 0xFFF00000) == 0xFFF00000);
+			sync =  ((headerstring & 0xFFE00000) == 0xFFE00000);	// SZD: MPEG 2.5
 		}
 		else
 		{
@@ -393,10 +408,10 @@ public final class Bitstream implements BitstreamErrors
   	int				returnvalue = 0;
   	int 			sum = bitindex + number_of_bits;
 
-	// There is a problem here, wordpointer could be -1 !
-	// To investigate.
+	// E.B
+	// There is a problem here, wordpointer could be -1 ?!
     if (wordpointer < 0) wordpointer = 0;
-    // End.
+    // E.B : End.
 
   	if (sum <= 32)
   	{
@@ -411,6 +426,7 @@ public final class Bitstream implements BitstreamErrors
 	   return returnvalue;
     }
 
+    // Magouille a Voir
     //((short[])&returnvalue)[0] = ((short[])wordpointer + 1)[0];
     //wordpointer++; // Added by me!
     //((short[])&returnvalue + 1)[0] = ((short[])wordpointer)[0];
@@ -503,5 +519,13 @@ public final class Bitstream implements BitstreamErrors
 		}
 		return totalBytesRead;
 	}
+
+	/**
+	 * Returns ID3v2 tags.
+	 */
+	/*public ByteArrayOutputStream getID3v2()
+	{
+		return _baos;
+	}*/
 
 }

@@ -38,12 +38,14 @@ public final class Header
 {
 	public  static final int[][]	frequencies =
 						{{22050, 24000, 16000, 1},
-						{44100, 48000, 32000, 1}};
+						{44100, 48000, 32000, 1},
+						{11025, 12000, 8000, 1}};	// SZD: MPEG25
 
 	/**
 	 * Constant for MPEG-2 LSF version
 	 */
 	public static final int		MPEG2_LSF = 0;
+	public static final int		MPEG25_LSF = 2;	// SZD
 
 	/**
 	 * Constant for MPEG-1 version
@@ -71,8 +73,8 @@ public final class Header
 	public short			checksum;
 	public int				framesize;
 	public int				nSlots;
-	private int 			_headerstring = -1;
 
+	private int				_headerstring = -1; // E.B
 
 	Header()
 	{
@@ -114,11 +116,17 @@ public final class Header
 	  {
 
 		headerstring = stream.syncHeader(syncmode);
-		_headerstring = headerstring;
+		_headerstring = headerstring; // E.B
 
 		if (syncmode==Bitstream.INITIAL_SYNC)
 		{
 				h_version = ((headerstring >>> 19) & 1);
+				if(((headerstring >>> 20) & 1) == 0)	// SZD: MPEG2.5 detection
+					if(h_version == MPEG2_LSF)
+						h_version = MPEG25_LSF;
+					else
+						throw stream.newBitstreamException(Bitstream.UNKNOWN_ERROR);
+
 
 				if ((h_sample_frequency = ((headerstring >>> 10) & 3)) == 3)
 				{
@@ -301,12 +309,21 @@ public final class Header
 	  56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, 0},
 	 	{0 /*free format*/, 8000, 16000, 24000, 32000, 40000, 48000,
 	  56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, 0}},
+
 		{{0 /*free format*/, 32000, 64000, 96000, 128000, 160000, 192000,
 	   224000, 256000, 288000, 320000, 352000, 384000, 416000, 448000, 0},
 	  {0 /*free format*/, 32000, 48000, 56000, 64000, 80000, 96000,
 	   112000, 128000, 160000, 192000, 224000, 256000, 320000, 384000, 0},
 	  {0 /*free format*/, 32000, 40000, 48000, 56000, 64000, 80000,
-	   96000, 112000, 128000, 160000, 192000, 224000, 256000, 320000, 0}}
+	   96000, 112000, 128000, 160000, 192000, 224000, 256000, 320000, 0}},
+		// SZD: MPEG2.5
+		{{0 /*free format*/, 32000, 48000, 56000, 64000, 80000, 96000,
+	  112000, 128000, 144000, 160000, 176000, 192000 ,224000, 256000, 0},
+	 	{0 /*free format*/, 8000, 16000, 24000, 32000, 40000, 48000,
+	  56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, 0},
+	 	{0 /*free format*/, 8000, 16000, 24000, 32000, 40000, 48000,
+	  56000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, 0}},
+
 		};
 
 	// E.B -> private to public
@@ -329,7 +346,7 @@ public final class Header
 	 {
 	   framesize = (144 * bitrates[h_version][h_layer - 1][h_bitrate_index]) /
 	               frequencies[h_version][h_sample_frequency];
-	   if (h_version == MPEG2_LSF) framesize >>= 1;
+	   if (h_version == MPEG2_LSF || h_version == MPEG25_LSF) framesize >>= 1;	// SZD
 	   if (h_padding_bit != 0) framesize++;
 	   // Layer III slots
 	   if (h_layer == 3)
@@ -341,7 +358,7 @@ public final class Header
 	  								  - 4; 								             // header size
 	     }
 	     else
-	     {  // MPEG-2 LSF
+		 {  // MPEG-2 LSF, SZD: MPEG-2.5 LSF
 	        nSlots = framesize - ((h_mode == SINGLE_CHANNEL) ?  9 : 17) // side info size
 	  					   		  -  ((h_protection_bit!=0) ? 0 : 2) 		       // CRC size
 	  								  - 4; 								             // header size
@@ -359,24 +376,26 @@ public final class Header
 	/**
 	 * Returns the maximum number of frames in the stream.
 	 */
-	public int max_number_of_frames(int streamsize)
+	public int max_number_of_frames(int streamsize)  // E.B
 	{
-		  return(streamsize / (framesize + 4 - h_padding_bit));
+		  if ((framesize + 4 - h_padding_bit) == 0) return 0;
+		  else return(streamsize / (framesize + 4 - h_padding_bit));
 	}
 
 	/**
 	 * Returns the maximum number of frames in the stream.
 	 */
-	public int min_number_of_frames(int streamsize)
+	public int min_number_of_frames(int streamsize) // E.B
 	{
-	  return(streamsize / (framesize + 5 - h_padding_bit));
+	  	if ((framesize + 5 - h_padding_bit) == 0) return 0;
+	  	else return(streamsize / (framesize + 5 - h_padding_bit));
 	}
 
 
 	/**
 	 * Returns ms/frame.
 	 */
-	public float ms_per_frame()
+	public float ms_per_frame() // E.B
 	{
 		float ms_per_frame_array[][] = {{8.707483f,  8.0f, 12.0f},
 		 						        {26.12245f, 24.0f, 36.0f},
@@ -387,7 +406,7 @@ public final class Header
 	/**
 	 * Returns total ms.
 	 */
-	public float total_ms(int streamsize)
+	public float total_ms(int streamsize) // E.B
 	{
 		return(max_number_of_frames(streamsize) * ms_per_frame());
 	}
@@ -395,7 +414,7 @@ public final class Header
 	/**
 	 * Returns synchronized header.
 	 */
-	public int getSyncHeader()
+	public int getSyncHeader() // E.B
 	{
 		return _headerstring;
 	}
@@ -419,7 +438,7 @@ public final class Header
 	}
 
 	// E.B -> private to public
-	static public final String bitrate_str[][][] = {
+	public static final String bitrate_str[][][] = {
 		{{"free format", "32 kbit/s", "48 kbit/s", "56 kbit/s", "64 kbit/s",
 	  "80 kbit/s", "96 kbit/s", "112 kbit/s", "128 kbit/s", "144 kbit/s",
 	  "160 kbit/s", "176 kbit/s", "192 kbit/s", "224 kbit/s", "256 kbit/s",
@@ -432,6 +451,7 @@ public final class Header
 	  "40 kbit/s", "48 kbit/s", "56 kbit/s", "64 kbit/s", "80 kbit/s",
 	  "96 kbit/s", "112 kbit/s", "128 kbit/s", "144 kbit/s", "160 kbit/s",
 	  "forbidden"}},
+
 	  {{"free format", "32 kbit/s", "64 kbit/s", "96 kbit/s", "128 kbit/s",
 	  "160 kbit/s", "192 kbit/s", "224 kbit/s", "256 kbit/s", "288 kbit/s",
 	  "320 kbit/s", "352 kbit/s", "384 kbit/s", "416 kbit/s", "448 kbit/s",
@@ -443,7 +463,20 @@ public final class Header
 	  {"free format", "32 kbit/s", "40 kbit/s", "48 kbit/s", "56 kbit/s",
 	  "64 kbit/s", "80 kbit/s" , "96 kbit/s", "112 kbit/s", "128 kbit/s",
 	  "160 kbit/s", "192 kbit/s", "224 kbit/s", "256 kbit/s", "320 kbit/s",
-	  "forbidden"}}
+	  "forbidden"}},
+		// SZD: MPEG2.5
+		{{"free format", "32 kbit/s", "48 kbit/s", "56 kbit/s", "64 kbit/s",
+	  "80 kbit/s", "96 kbit/s", "112 kbit/s", "128 kbit/s", "144 kbit/s",
+	  "160 kbit/s", "176 kbit/s", "192 kbit/s", "224 kbit/s", "256 kbit/s",
+	  "forbidden"},
+	  {"free format", "8 kbit/s", "16 kbit/s", "24 kbit/s", "32 kbit/s",
+	  "40 kbit/s", "48 kbit/s", "56 kbit/s", "64 kbit/s", "80 kbit/s",
+	  "96 kbit/s", "112 kbit/s", "128 kbit/s", "144 kbit/s", "160 kbit/s",
+	  "forbidden"},
+	  {"free format", "8 kbit/s", "16 kbit/s", "24 kbit/s", "32 kbit/s",
+	  "40 kbit/s", "48 kbit/s", "56 kbit/s", "64 kbit/s", "80 kbit/s",
+	  "96 kbit/s", "112 kbit/s", "128 kbit/s", "144 kbit/s", "160 kbit/s",
+	  "forbidden"}},
 	  };
 
 	/**
@@ -464,18 +497,24 @@ public final class Header
 	    case THIRTYTWO:
 	  	if (h_version == MPEG1)
 	  		return "32 kHz";
-	    else
+	  	else if (h_version == MPEG2_LSF)
 	    	return "16 kHz";
+	    else	// SZD
+	    	return "8 kHz";
 	    case FOURTYFOUR_POINT_ONE:
 	  	if (h_version == MPEG1)
 	  		return "44.1 kHz";
-	    else
+	  	else if (h_version == MPEG2_LSF)
 	    	return "22.05 kHz";
+		else	// SZD
+	    	return "11.025 kHz";
 	    case FOURTYEIGHT:
 	  	if (h_version == MPEG1)
 	  		return "48 kHz";
-	    else
+	  	else if (h_version == MPEG2_LSF)
 	    	return "24 kHz";
+		else	// SZD
+			return "12 kHz";
 	  }
 	  return(null);
 	}
@@ -510,6 +549,8 @@ public final class Header
 	      return "MPEG-1";
 	    case MPEG2_LSF:
 	      return "MPEG-2 LSF";
+	    case MPEG25_LSF:	// SZD
+	      return "MPEG-2.5 LSF";
 	  }
 	  return(null);
 	}

@@ -1,5 +1,5 @@
 -----------------------------------------------------
-                  JavaLayer 0.1.2
+                  JavaLayer 0.2.0
 
  Project Homepage :
    http://www.javazoom.net/javalayer/javalayer.html 
@@ -10,9 +10,9 @@
 
 DESCRIPTION :
 -----------
-JavaLayer is a 100% JAVA library that decodes/plays/converts MPEG 1/2 Layer 1/2/3 (i.e. MP3)
-in real time. This is a non-commercial project and anyone can add his contribution.
-JavaLayer is licensed under GPL (see LICENSE.txt).
+JavaLayer is a 100% JAVA library that decodes/plays/converts MPEG 1/2/2.5 Layer 1/2/3
+(i.e. MP3) in real time. This is a non-commercial project and anyone can add his 
+contribution. JavaLayer is licensed under GPL (see LICENSE.txt).
 
 
 FAQ : 
@@ -20,7 +20,7 @@ FAQ :
 
 - How to install Javalayer ?
   Before running JavaLayer you must set PATH and CLASSPATH for JAVA
-  and you must add jl012.jar to the CLASSPATH.
+  and you must add jl020.jar to the CLASSPATH.
 
 - Do I need JMF to run JavaLayer player ?
   No, JMF is not required. You just need a JVM JavaSound 1.0 compliant.
@@ -34,14 +34,20 @@ FAQ :
   java javazoom.jl.player.jlp localfile.mp3
    or
   java javazoom.jl.player.jlp -url http://www.aserver.com/remotefile.mp3
-  Note : MP3 simple player only works under JVM that supports JavaSound 1.0 (i.e JDK1.3.x)
+  Note : MP3 simple player only works under JVM that supports JavaSound 1.0 (i.e JDK1.3.x+)
 
 - Does simple MP3 player support streaming ?
   Yes, use the following command to play music from stream :
   java javazoom.jl.player.jlp -url http://www.shoutcastserver.com:8000
 
 - Does JavaLayer support MPEG 2.5 ?
-  No, JavaLayer doesn't support low bitrates (yet).
+  Yes, it works fine for all files generated with LAME.
 
 - How to get ID3v1 or ID3v2 tags from JavaLayer API ?
   The API doesn't provide this feature (yet).
+
+- How much memory JavaLayer needs to run ?
+  Here are our benchmark notes :
+    - Heap use range : 1380KB to 1900KB - 370 classes loaded. 
+    - Footprint : ~8MB under WinNT4 + J2SE 1.3 (Hotspot).
+    - CPU usage : ~12% under PIII 800Mhz/WinNT4+J2SE 1.3 (Hotspot).

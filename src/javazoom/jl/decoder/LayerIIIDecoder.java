@@ -11,7 +11,7 @@
  *                                                                    *
  * 18/06/01  Michael Scheerer,  Fixed bugs which causes               *
  *           negative indexes in method huffmann_decode and in method *
- *           dequanisize_sample.                                      *  
+ *           dequanisize_sample.                                      *
  *                                                                    *
  * 16/07/01  Michael Scheerer, Catched a bug in method                *
  *           huffmann_decode, which causes an outOfIndexException.    *
@@ -25,14 +25,14 @@
  **********************************************************************
  *                                                                    *
  **********************************************************************/
- 
+
 package javazoom.jl.decoder;
 
 import java.io.IOException;
 
 /**
  * Class Implementing Layer 3 Decoder.
- * 
+ *
  * @since 0.0
  */
 
@@ -40,7 +40,7 @@ final class LayerIIIDecoder implements FrameDecoder
 {
 	public int[]				scalefac_buffer;
 
-	// MDM: removed, as this wasn't being used. 
+	// MDM: removed, as this wasn't being used.
 	//private float               CheckSumOut1d = 0.0f;
     private int                 CheckSumHuff = 0;
 	private int[] 				is_1d;
@@ -61,7 +61,7 @@ final class LayerIIIDecoder implements FrameDecoder
     private temporaire2[]        III_scalefac_t;
     private temporaire2[]        scalefac;
     // private III_scalefac_t 		scalefac;
-    
+
     private int 				max_gr;
     private int					frame_start;
     private int 				part2_start;
@@ -75,7 +75,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	 * Constructor.
 	 */
 	// REVIEW: these constructor arguments should be moved to the
-	// decodeFrame() method, where possible, so that one 
+	// decodeFrame() method, where possible, so that one
 	public LayerIIIDecoder(Bitstream stream0, Header header0,
    	                        SynthesisFilter filtera, SynthesisFilter filterb,
                             Obuffer buffer0, int which_ch0)
@@ -88,60 +88,81 @@ final class LayerIIIDecoder implements FrameDecoder
 		prevblck = new float[2][SBLIMIT*SSLIMIT];
 		k = new float[2][SBLIMIT*SSLIMIT];
 		nonzero = new int[2];
-        
+
         //III_scalefact_t
         III_scalefac_t = new temporaire2[2];
         III_scalefac_t[0] = new temporaire2();
         III_scalefac_t[1] = new temporaire2();
         scalefac = III_scalefac_t;
         // L3TABLE INIT
-        
-		sfBandIndex = new SBI[6];
+
+		sfBandIndex = new SBI[9];	// SZD: MPEG2.5 +3 indices
 		int[] l0 = {0,6,12,18,24,30,36,44,54,66,80,96,116,140,168,200,238,284,336,396,464,522,576};
 		int[] s0 = {0,4,8,12,18,24,32,42,56,74,100,132,174,192};
 		int[] l1 = {0,6,12,18,24,30,36,44,54,66,80,96,114,136,162,194,232,278,330,394,464,540,576};
 		int[] s1 = {0,4,8,12,18,26,36,48,62,80,104,136,180,192};
 		int[] l2 = {0,6,12,18,24,30,36,44,54,66,80,96,116,140,168,200,238,284,336,396,464,522,576};
 		int[] s2 = {0,4,8,12,18,26,36,48,62,80,104,134,174,192};
+
 		int[] l3 = {0,4,8,12,16,20,24,30,36,44,52,62,74,90,110,134,162,196,238,288,342,418,576};
 		int[] s3 = {0,4,8,12,16,22,30,40,52,66,84,106,136,192};
 		int[] l4 = {0,4,8,12,16,20,24,30,36,42,50,60,72,88,106,128,156,190,230,276,330,384,576};
 		int[] s4 = {0,4,8,12,16,22,28,38,50,64,80,100,126,192};
 		int[] l5 = {0,4,8,12,16,20,24,30,36,44,54,66,82,102,126,156,194,240,296,364,448,550,576};
 		int[] s5 = {0,4,8,12,16,22,30,42,58,78,104,138,180,192};
+		// SZD: MPEG2.5
+		int[] l6 = {0,6,12,18,24,30,36,44,54,66,80,96,116,140,168,200,238,284,336,396,464,522,576};
+		int[] s6 = {0,4,8,12,18,26,36,48,62,80,104,134,174,192};
+		int[] l7 = {0,6,12,18,24,30,36,44,54,66,80,96,116,140,168,200,238,284,336,396,464,522,576};
+		int[] s7 = {0,4,8,12,18,26,36,48,62,80,104,134,174,192};
+		int[] l8 = {0,12,24,36,48,60,72,88,108,132,160,192,232,280,336,400,476,566,568,570,572,574,576};
+		int[] s8 = {0,8,16,24,36,52,72,96,124,160,162,164,166,192};
+
 		sfBandIndex[0]= new SBI(l0,s0);
 		sfBandIndex[1]= new SBI(l1,s1);
 		sfBandIndex[2]= new SBI(l2,s2);
+
 		sfBandIndex[3]= new SBI(l3,s3);
 		sfBandIndex[4]= new SBI(l4,s4);
 		sfBandIndex[5]= new SBI(l5,s5);
+		//SZD: MPEG2.5
+		sfBandIndex[6]= new SBI(l6,s6);
+		sfBandIndex[7]= new SBI(l7,s7);
+		sfBandIndex[8]= new SBI(l8,s8);
 		// END OF L3TABLE INIT
-		
+
+		if(reorder_table == null) {	// SZD: generate LUT
+			reorder_table = new int[9][];
+			for(int i = 0; i < 9; i++)
+				reorder_table[i] = reorder(sfBandIndex[i].s);
+		}
+
 		// Sftable
 		int[] ll0 = {0, 6, 11, 16, 21};
 		int[] ss0 = {0, 6, 12};
 		sftable = new Sftable(ll0,ss0);
 		// END OF Sftable
-		
-        // scalefac_buffer	
+
+        // scalefac_buffer
 		scalefac_buffer = new int[54];
 		// END OF scalefac_buffer
-		
+
 	  	stream         = stream0;
 	  	header         = header0;
 	  	filter1        = filtera;
 	  	filter2        = filterb;
 	  	buffer         = buffer0;
 	  	which_channels = which_ch0;
-	
+
 	  	frame_start = 0;
 	  	channels    = (header.mode() == Header.SINGLE_CHANNEL) ? 1 : 2;
 	  	max_gr      = (header.version() == Header.MPEG1) ? 2 : 1;
-	
+
 	  	sfreq       =  header.sample_frequency() +
-	                 ((header.version() == Header.MPEG1) ? 3 : 0);
-	
-	  	if (channels == 2) 
+	                 ((header.version() == Header.MPEG1) ? 3 :
+	                 (header.version() == Header.MPEG25_LSF) ? 6 : 0);	// SZD
+
+	  	if (channels == 2)
 		{
 	  	  switch (which_channels)
 		  {
@@ -149,11 +170,11 @@ final class LayerIIIDecoder implements FrameDecoder
 		     case OutputChannels.DOWNMIX_CHANNELS:
 		     first_channel = last_channel = 0;
 		     break;
-	
+
 		     case OutputChannels.RIGHT_CHANNEL:
 		     first_channel = last_channel = 1;
 		     break;
-	
+
 		     case OutputChannels.BOTH_CHANNELS:
 			  default:
 		     first_channel  = 0;
@@ -165,13 +186,13 @@ final class LayerIIIDecoder implements FrameDecoder
 	   {
 	    first_channel = last_channel = 0;
 	   }
-	
+
 	  for(int ch=0;ch<2;ch++)
 	     for (int j=0; j<576; j++)
 	   		prevblck[ch][j] = 0.0f;
-	
+
 	  nonzero[0] = nonzero[1] = 576;
-	
+
 	  br = new BitReserve();
   	  si = new III_side_info_t();
 	}
@@ -185,23 +206,23 @@ final class LayerIIIDecoder implements FrameDecoder
 	  for(int ch=0;ch<2;ch++)
 	  for (int j=0; j<576; j++)
    	   prevblck[ch][j] = 0.0f;
-   	  br = new BitReserve();   
+   	  br = new BitReserve();
    }
- 
+
    public void decodeFrame()
    {
 	   decode();
    }
-   
+
    /**
     * Decode one frame, filling the buffer with the output samples.
 	*/
-	
+
    // subband samples are buffered and passed to the
-   // SynthesisFilter in one go. 
+   // SynthesisFilter in one go.
 	private float[] samples1 = new float[32];
 	private float[] samples2 = new float[32];
-	
+
 	public void decode()
 	{
 		int nSlots = header.slots();
@@ -210,71 +231,71 @@ final class LayerIIIDecoder implements FrameDecoder
 	    int main_data_end;
 		int bytes_to_discard;
 	    int i;
-	
+
 		get_side_info();
-	
+
 	    for (i=0; i<nSlots; i++)
 	    	br.hputbuf(stream.get_bits(8));
-	
+
 	    main_data_end = br.hsstell() >>> 3; // of previous frame
-	
+
 	    if ((flush_main = (br.hsstell() & 7)) != 0) {
 	         br.hgetbits(8 - flush_main);
 				main_data_end++;
 		 }
-	
+
 		 bytes_to_discard = frame_start - main_data_end
 								  - si.main_data_begin;
-	
+
 		 frame_start += nSlots;
-	
+
 	    if (bytes_to_discard < 0)
 				return;
-	
+
 		 if (main_data_end > 4096) {
 				frame_start -= 4096;
 				br.rewindNbytes(4096);
 		 }
-	
+
 		 for (; bytes_to_discard > 0; bytes_to_discard--)
 	    		br.hgetbits(8);
-	
+
 		 for (gr=0;gr<max_gr;gr++) {
-	
+
 				for (ch=0; ch<channels; ch++) {
 	           part2_start = br.hsstell();
-	
+
 	           if (header.version() == Header.MPEG1)
 					  get_scale_factors(ch, gr);
-	           else  // MPEG-2 LSF
+			   else  // MPEG-2 LSF, SZD: MPEG-2.5 LSF
 	              get_LSF_scale_factors(ch, gr);
-	
+
 				  huffman_decode(ch, gr);
 				  // System.out.println("CheckSum HuffMan = " + CheckSumHuff);
 				  dequantize_sample(ro[ch], ch, gr);
 				}
-	
+
 	         stereo(gr);
-	
+
 	         if ((which_channels == OutputChannels.DOWNMIX_CHANNELS) && (channels > 1))
 	         	do_downmix();
-	
+
 	         for (ch=first_channel; ch<=last_channel; ch++) {
-	
+
 	         		reorder(lr[ch], ch, gr);
 						antialias(ch, gr);
                  //for (int hb = 0;hb<576;hb++) CheckSumOut1d = CheckSumOut1d + out_1d[hb];
 				 //System.out.println("CheckSumOut1d = "+CheckSumOut1d);
-	             
+
 	               hybrid(ch, gr);
-	             
+
 	             //for (int hb = 0;hb<576;hb++) CheckSumOut1d = CheckSumOut1d + out_1d[hb];
 				 //System.out.println("CheckSumOut1d = "+CheckSumOut1d);
-	
+
 						for (sb18=18;sb18<576;sb18+=36) // Frequency inversion
 	                   for (ss=1;ss<SSLIMIT;ss+=2)
 	                  	  out_1d[sb18 + ss] = -out_1d[sb18 + ss];
-	
+
 						if ((ch == 0) || (which_channels == OutputChannels.RIGHT_CHANNEL)) {
 						  for (ss=0;ss<SSLIMIT;ss++) { // Polyphase synthesis
 	                  	sb = 0;
@@ -297,18 +318,18 @@ final class LayerIIIDecoder implements FrameDecoder
 	                    	filter2.input_samples(samples2);
 							filter2.calculate_pcm_samples(buffer);
 						  }
-	
+
 	               }
 				}	// channels
 		 }	// granule
-		 
-		 
+
+
 	        // System.out.println("Counter = ................................."+counter);
   	        //if (counter <  609)
   	        //{
   	            counter++;
   	            buffer.write_buffer(1);
-  	        //} 
+  	        //}
   	        //else if (counter == 609)
   	        //{
   	        //    buffer.close();
@@ -317,7 +338,7 @@ final class LayerIIIDecoder implements FrameDecoder
   	        //else
   	        //{
   	        //}
-  	 	
+
 	}
 
     /**
@@ -331,19 +352,19 @@ final class LayerIIIDecoder implements FrameDecoder
 		int ch, gr;
 		if (header.version() == Header.MPEG1)
 		{
-	
+
 			si.main_data_begin = stream.get_bits(9);
 			if (channels == 1)
 				si.private_bits = stream.get_bits(5);
 			else si.private_bits = stream.get_bits(3);
-	
+
 			for (ch=0; ch<channels; ch++) {
 				si.ch[ch].scfsi[0] = stream.get_bits(1);
 				si.ch[ch].scfsi[1] = stream.get_bits(1);
 				si.ch[ch].scfsi[2] = stream.get_bits(1);
 				si.ch[ch].scfsi[3] = stream.get_bits(1);
 		   }
-	
+
 			for (gr=0; gr<2; gr++) {
 				for (ch=0; ch<channels; ch++) {
 					si.ch[ch].gr[gr].part2_3_length = stream.get_bits(12);
@@ -354,16 +375,16 @@ final class LayerIIIDecoder implements FrameDecoder
 					if ((si.ch[ch].gr[gr].window_switching_flag) != 0) {
 						si.ch[ch].gr[gr].block_type       = stream.get_bits(2);
 						si.ch[ch].gr[gr].mixed_block_flag = stream.get_bits(1);
-	
+
 						si.ch[ch].gr[gr].table_select[0]  = stream.get_bits(5);
 						si.ch[ch].gr[gr].table_select[1]  = stream.get_bits(5);
-	
+
 						si.ch[ch].gr[gr].subblock_gain[0] = stream.get_bits(3);
 						si.ch[ch].gr[gr].subblock_gain[1] = stream.get_bits(3);
 						si.ch[ch].gr[gr].subblock_gain[2] = stream.get_bits(3);
-	
+
 						// Set region_count parameters since they are implicit in this case.
-	
+
 						if (si.ch[ch].gr[gr].block_type == 0) {
 							//	 Side info bad: block_type == 0 in split block
 							return false;
@@ -388,35 +409,35 @@ final class LayerIIIDecoder implements FrameDecoder
 					si.ch[ch].gr[gr].count1table_select = stream.get_bits(1);
 	         }
 	      }
-	
-	   } else {  	// MPEG-2 LSF
-	
+
+		} else {  	// MPEG-2 LSF, SZD: MPEG-2.5 LSF
+
 	      si.main_data_begin = stream.get_bits(8);
 	      if (channels == 1)
 	      	si.private_bits = stream.get_bits(1);
 	      else si.private_bits = stream.get_bits(2);
-	
+
 	      for (ch=0; ch<channels; ch++) {
-	
+
 	          si.ch[ch].gr[0].part2_3_length = stream.get_bits(12);
 	          si.ch[ch].gr[0].big_values = stream.get_bits(9);
 	          si.ch[ch].gr[0].global_gain = stream.get_bits(8);
 	          si.ch[ch].gr[0].scalefac_compress = stream.get_bits(9);
 	          si.ch[ch].gr[0].window_switching_flag = stream.get_bits(1);
-	
+
 	          if ((si.ch[ch].gr[0].window_switching_flag) != 0) {
-	
+
 	             si.ch[ch].gr[0].block_type = stream.get_bits(2);
 	             si.ch[ch].gr[0].mixed_block_flag = stream.get_bits(1);
 	             si.ch[ch].gr[0].table_select[0] = stream.get_bits(5);
 	             si.ch[ch].gr[0].table_select[1] = stream.get_bits(5);
-	
+
 	             si.ch[ch].gr[0].subblock_gain[0] = stream.get_bits(3);
 	             si.ch[ch].gr[0].subblock_gain[1] = stream.get_bits(3);
 	             si.ch[ch].gr[0].subblock_gain[2] = stream.get_bits(3);
-	
+
 	            // Set region_count parameters since they are implicit in this case.
-	
+
 	             if (si.ch[ch].gr[0].block_type == 0) {
 	                // Side info bad: block_type == 0 in split block
 	                return false;
@@ -428,7 +449,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	                si.ch[ch].gr[0].region1_count = 20 -
 	                											si.ch[ch].gr[0].region0_count;
 	             }
-	
+
 	          } else {
 	             si.ch[ch].gr[0].table_select[0] = stream.get_bits(5);
 	             si.ch[ch].gr[0].table_select[1] = stream.get_bits(5);
@@ -437,14 +458,14 @@ final class LayerIIIDecoder implements FrameDecoder
 	             si.ch[ch].gr[0].region1_count = stream.get_bits(3);
 	             si.ch[ch].gr[0].block_type = 0;
 	          }
-	
+
 	          si.ch[ch].gr[0].scalefac_scale = stream.get_bits(1);
 	          si.ch[ch].gr[0].count1table_select = stream.get_bits(1);
 	      }   // for(ch=0; ch<channels; ch++)
 	   } // if (header.version() == MPEG1)
-	  return true;	
+	  return true;
 	}
-	
+
     /**
 	 *
 	 */
@@ -455,7 +476,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	   int scale_comp   = gr_info.scalefac_compress;
 	   int length0      = slen[0][scale_comp];
 	   int length1      = slen[1][scale_comp];
-	
+
 		if ((gr_info.window_switching_flag != 0) && (gr_info.block_type == 2)) {
 			if ((gr_info.mixed_block_flag) != 0) { // MIXED
 				for (sfb = 0; sfb < 8; sfb++)
@@ -471,9 +492,9 @@ final class LayerIIIDecoder implements FrameDecoder
 						  slen[1][gr_info.scalefac_compress]);
 				for (sfb=12,window=0; window<3; window++)
 					scalefac[ch].s[window][sfb] = 0;
-	
+
 	      } else {  // SHORT
-	
+
 	         scalefac[ch].s[0][0]  = br.hgetbits(length0);
 	         scalefac[ch].s[1][0]  = br.hgetbits(length0);
 	         scalefac[ch].s[2][0]  = br.hgetbits(length0);
@@ -514,9 +535,9 @@ final class LayerIIIDecoder implements FrameDecoder
 				scalefac[ch].s[1][12] = 0;
 				scalefac[ch].s[2][12] = 0;
 			} // SHORT
-	
+
 		} else {   // LONG types 0,1,3
-	
+
 	      if ((si.ch[ch].scfsi[0] == 0) || (gr == 0)) {
 	           scalefac[ch].l[0]  = br.hgetbits(length0);
 	           scalefac[ch].l[1]  = br.hgetbits(length0);
@@ -546,7 +567,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	           scalefac[ch].l[19] = br.hgetbits(length1);
 	           scalefac[ch].l[20] = br.hgetbits(length1);
 			}
-	
+
 	      scalefac[ch].l[21] = 0;
 		  scalefac[ch].l[22] = 0;
 		}
@@ -558,20 +579,20 @@ final class LayerIIIDecoder implements FrameDecoder
 	// MDM: new_slen is fully initialized before use, no need
 	// to reallocate array.
 	private final int[] new_slen = new int[4];
-	
+
 	private void get_LSF_scale_data(int ch, int gr)
 	{
-		
+
 	  	int scalefac_comp, int_scalefac_comp;
 	    int mode_ext = header.mode_extension();
 		int m;
 		int blocktypenumber;
 		int blocknumber = 0;
-	
+
 		gr_info_s gr_info = (si.ch[ch].gr[gr]);
-	
+
 		scalefac_comp =  gr_info.scalefac_compress;
-	
+
 	    if (gr_info.block_type == 2) {
 	     if (gr_info.mixed_block_flag == 0)
 	      	blocktypenumber = 1;
@@ -582,29 +603,29 @@ final class LayerIIIDecoder implements FrameDecoder
 	    } else {
 	   	blocktypenumber = 0;
 	    }
-	
+
 	   if(!(((mode_ext == 1) || (mode_ext == 3)) && (ch == 1))) {
-	
+
 			if(scalefac_comp < 400) {
-	
+
 				new_slen[0] = (scalefac_comp >>> 4) / 5 ;
 				new_slen[1] = (scalefac_comp >>> 4) % 5 ;
 				new_slen[2] = (scalefac_comp & 0xF) >>> 2 ;
 				new_slen[3] = (scalefac_comp & 3);
 	         	si.ch[ch].gr[gr].preflag = 0;
 	         	blocknumber = 0;
-	
+
 	       } else if (scalefac_comp  < 500) {
-	
+
 				new_slen[0] = ((scalefac_comp - 400) >>> 2) / 5 ;
 				new_slen[1] = ((scalefac_comp - 400) >>> 2) % 5 ;
 				new_slen[2] = (scalefac_comp - 400 ) & 3 ;
 				new_slen[3] = 0;
 	         	si.ch[ch].gr[gr].preflag = 0;
 	         	blocknumber = 1;
-	
+
 		   } else if (scalefac_comp < 512) {
-	
+
 				new_slen[0] = (scalefac_comp - 500 ) / 3 ;
 				new_slen[1] = (scalefac_comp - 500)  % 3 ;
 				new_slen[2] = 0;
@@ -613,11 +634,11 @@ final class LayerIIIDecoder implements FrameDecoder
 		      	blocknumber = 2;
 	 	   }
 	   }
-	
+
 	   if((((mode_ext == 1) || (mode_ext == 3)) && (ch == 1)))
 	   {
 	      int_scalefac_comp = scalefac_comp >>> 1;
-	
+
 	      if (int_scalefac_comp < 180)
 	      {
 				new_slen[0] = int_scalefac_comp  / 36 ;
@@ -642,10 +663,10 @@ final class LayerIIIDecoder implements FrameDecoder
 	         	blocknumber = 5;
 	      }
 	   }
-	
+
 	   for (int x=0; x<45; x++) // why 45, not 54?
 	   	scalefac_buffer[x] = 0;
-	
+
 	   m = 0;
 	   for (int i=0; i<4;i++) {
 	     	for (int j = 0; j < nr_of_sfb_block[blocknumber][blocktypenumber][i];
@@ -654,11 +675,11 @@ final class LayerIIIDecoder implements FrameDecoder
 	        scalefac_buffer[m] = (new_slen[i] == 0) ? 0 :
 	        							  br.hgetbits(new_slen[i]);
 	        m++;
-	
+
 	      } // for (unint32 j ...
    		} // for (uint32 i ...
 	}
-	
+
 	/**
 	 *
 	 */
@@ -667,9 +688,9 @@ final class LayerIIIDecoder implements FrameDecoder
 		int m = 0;
 	    int sfb, window;
 		gr_info_s gr_info = (si.ch[ch].gr[gr]);
-	
+
 	    get_LSF_scale_data(ch, gr);
-	
+
 	    if ((gr_info.window_switching_flag != 0) && (gr_info.block_type == 2)) {
 	      if (gr_info.mixed_block_flag != 0) { 	// MIXED
 	         for (sfb = 0; sfb < 8; sfb++)
@@ -686,9 +707,9 @@ final class LayerIIIDecoder implements FrameDecoder
 	         }
 	         for (window=0; window<3; window++)
 	            scalefac[ch].s[window][12] = 0;
-	
+
 	      } else {  // SHORT
-	
+
 	           for (sfb = 0; sfb < 12; sfb++) {
 	               for (window=0; window<3; window++)
 	               {
@@ -696,12 +717,12 @@ final class LayerIIIDecoder implements FrameDecoder
 	                  m++;
 	               }
 	           }
-	
+
 	           for (window=0; window<3; window++)
 	               scalefac[ch].s[window][12] = 0;
 	      }
 	   } else {   // LONG types 0,1,3
-	
+
 	      for (sfb = 0; sfb < 21; sfb++) {
 	          scalefac[ch].l[sfb] = scalefac_buffer[m];
 	          m++;
@@ -710,7 +731,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	      scalefac[ch].l[22] = 0;
 		}
 	}
-	
+
 	/**
 	 *
 	 */
@@ -724,61 +745,61 @@ final class LayerIIIDecoder implements FrameDecoder
 		y[0] = 0;
 		v[0] = 0;
 		w[0] = 0;
-		
+
 	   	int part2_3_end = part2_start + si.ch[ch].gr[gr].part2_3_length;
 	   	int num_bits;
 		int region1Start;
 		int region2Start;
 	    int index;
-	    
+
 	    int buf, buf1;
-	    
+
 	 	huffcodetab h;
-	
+
 		// Find region boundary for short block case
-	
+
 		if ( ((si.ch[ch].gr[gr].window_switching_flag) != 0) &&
 			  (si.ch[ch].gr[gr].block_type == 2) ) {
-	
+
 			// Region2.
-	
-			region1Start = 36;  // sfb[9/3]*3=36
+	    //MS: Extrahandling for 8KHZ
+	    region1Start = (sfreq == 8) ? 72 : 36;  // sfb[9/3]*3=36 or in case 8KHZ = 72
 			region2Start = 576; // No Region2 for short block case
-	
+
 	  } else {          // Find region boundary for long block case
-	  
+
 	    buf = si.ch[ch].gr[gr].region0_count + 1;
 	    buf1 = buf + si.ch[ch].gr[gr].region1_count + 1;
-	    
+
 	    if(buf1 > sfBandIndex[sfreq].l.length - 1) buf1 = sfBandIndex[sfreq].l.length - 1;
-	   
+
 			region1Start = sfBandIndex[sfreq].l[buf];
 			region2Start = sfBandIndex[sfreq].l[buf1]; /* MI */
 	   }
-	
+
 	   index = 0;
 		// Read bigvalues area
 		for (int i=0; i<(si.ch[ch].gr[gr].big_values<<1); i+=2) {
 			if      (i<region1Start) h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[0]];
 			else if (i<region2Start) h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[1]];
 				  else                h = huffcodetab.ht[si.ch[ch].gr[gr].table_select[2]];
-	
+
 			huffcodetab.huffman_decoder(h, x, y, v, w, br);
-	
+
 	      is_1d[index++] = x[0];
 	      is_1d[index++] = y[0];
 	      CheckSumHuff = CheckSumHuff + x[0] + y[0];
 	      // System.out.println("x = "+x[0]+" y = "+y[0]);
 		}
-	
+
 		// Read count1 area
 		h = huffcodetab.ht[si.ch[ch].gr[gr].count1table_select+32];
 	    num_bits = br.hsstell();
-	
+
 		while ((num_bits < part2_3_end) && (index < 576)) {
-	
+
 			huffcodetab.huffman_decoder(h, x, y, v, w, br);
-	
+
 	      is_1d[index++] = v[0];
 	      is_1d[index++] = w[0];
 	      is_1d[index++] = x[0];
@@ -788,32 +809,32 @@ final class LayerIIIDecoder implements FrameDecoder
 	      // System.out.println("x = "+x[0]+" y = "+y[0]);
 	      num_bits = br.hsstell();
 	   }
-	
+
 		if (num_bits > part2_3_end) {
 			br.rewindNbits(num_bits - part2_3_end);
 	      index-=4;
 	   }
-	
+
 	   num_bits = br.hsstell();
-	
+
 		// Dismiss stuffing bits
 		if (num_bits < part2_3_end)
 	   	br.hgetbits(part2_3_end - num_bits);
-	
+
 		// Zero out rest
-	
+
 	   if (index < 576)
 		   nonzero[ch] = index;
 	   else
 	   	nonzero[ch] = 576;
-	   
+
 	   if (index < 0) index = 0;
-	   
+
 	   // may not be necessary
 	   for (; index<576; index++)
    		is_1d[index] = 0;
 	}
-	
+
 	/**
 	 *
 	 */
@@ -830,7 +851,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	      k[1][i] = io[io_type][is_pos >>> 1];
    	   }
 	}
-	
+
 	/**
 	 *
 	 */
@@ -844,9 +865,9 @@ final class LayerIIIDecoder implements FrameDecoder
 		int  index=0, t_index, j;
 	   	float g_gain;
 	    float[][] xr_1d = xr;
-	
+
 		// choose correct scalefactor band per block type, initalize boundary
-	
+
 		if ((gr_info.window_switching_flag !=0 ) && (gr_info.block_type == 2) ) {
 			if (gr_info.mixed_block_flag != 0)
 				next_cb_boundary=sfBandIndex[sfreq].l[1];  // LONG blocks: 0,1,3
@@ -858,12 +879,12 @@ final class LayerIIIDecoder implements FrameDecoder
 		} else {
 			next_cb_boundary=sfBandIndex[sfreq].l[1];  // LONG blocks: 0,1,3
 	   }
-	
+
 	   // Compute overall (global) scaling.
-	
+
 		g_gain = (float) Math.pow(2.0 , (0.25 * (gr_info.global_gain - 210.0)));
-	
-	  	for (j=0; j<nonzero[ch]; j++) 
+
+	  	for (j=0; j<nonzero[ch]; j++)
 	  	{
 	  	    // Modif E.B 02/22/99
             int reste = j % SSLIMIT;
@@ -876,19 +897,19 @@ final class LayerIIIDecoder implements FrameDecoder
 	         else xr_1d[quotien][reste] = -g_gain * t_43[-abv];
 	        }
 	   }
-	
+
 		// apply formula per block type
-	
+
 	   for (j=0; j<nonzero[ch]; j++)
 	   {
             // Modif E.B 02/22/99
             int reste = j % SSLIMIT;
             int quotien = (int) ((j-reste)/SSLIMIT);
-		
+
 			if (index == next_cb_boundary)  { /* Adjust critical band boundary */
 	      	if ((gr_info.window_switching_flag != 0) && (gr_info.block_type == 2)) {
 	         	if (gr_info.mixed_block_flag != 0)  {
-	
+
 	            	if (index == sfBandIndex[sfreq].l[8])  {
 	                  next_cb_boundary = sfBandIndex[sfreq].s[4];
 	                  next_cb_boundary = (next_cb_boundary << 2) -
@@ -896,52 +917,52 @@ final class LayerIIIDecoder implements FrameDecoder
 	                  cb = 3;
 	                  cb_width = sfBandIndex[sfreq].s[4] -
 	                    			  sfBandIndex[sfreq].s[3];
-	
+
 	                  cb_begin = sfBandIndex[sfreq].s[3];
 	                  cb_begin = (cb_begin << 2) - cb_begin;
-	
+
 	               } else if (index < sfBandIndex[sfreq].l[8]) {
-	
+
 	               	next_cb_boundary = sfBandIndex[sfreq].l[(++cb)+1];
-	
+
 	               } else {
-	
+
 	               	next_cb_boundary = sfBandIndex[sfreq].s[(++cb)+1];
 	                  next_cb_boundary = (next_cb_boundary << 2) -
 	                    				        next_cb_boundary;
-	
+
 	                  cb_begin = sfBandIndex[sfreq].s[cb];
 							cb_width = sfBandIndex[sfreq].s[cb+1] -
 	                             cb_begin;
 	                  cb_begin = (cb_begin << 2) - cb_begin;
 	               }
-	
+
 	            } else  {
-	
+
 	               next_cb_boundary = sfBandIndex[sfreq].s[(++cb)+1];
 	               next_cb_boundary = (next_cb_boundary << 2) -
 	                                  next_cb_boundary;
-	
+
 	               cb_begin = sfBandIndex[sfreq].s[cb];
 						cb_width = sfBandIndex[sfreq].s[cb+1] -
 	                          cb_begin;
 	               cb_begin = (cb_begin << 2) - cb_begin;
 	            }
-	
+
 	         } else  { // long blocks
-	
+
 						next_cb_boundary = sfBandIndex[sfreq].l[(++cb)+1];
-	
+
 	         }
 	      }
-	
+
 			// Do long/short dependent scaling operations
-	
+
 			if ((gr_info.window_switching_flag !=0)&&
 				 (((gr_info.block_type == 2) && (gr_info.mixed_block_flag == 0)) ||
 				  ((gr_info.block_type == 2) && (gr_info.mixed_block_flag!=0) && (j >= 36)) ))
 	      {
-	
+
 				t_index = (index - cb_begin) / cb_width;
 	/*            xr[sb][ss] *= pow(2.0, ((-2.0 * gr_info.subblock_gain[t_index])
 	                                    -(0.5 * (1.0 + gr_info.scalefac_scale)
@@ -949,24 +970,24 @@ final class LayerIIIDecoder implements FrameDecoder
 				int idx = scalefac[ch].s[t_index][cb]
 	           				 << gr_info.scalefac_scale;
 	         idx += (gr_info.subblock_gain[t_index] << 2);
-	
+
 				xr_1d[quotien][reste] *= two_to_negative_half_pow[idx];
-	
+
 			} else {   // LONG block types 0,1,3 & 1st 2 subbands of switched blocks
 	/*				xr[sb][ss] *= pow(2.0, -0.5 * (1.0+gr_info.scalefac_scale)
 														 * (scalefac[ch].l[cb]
 														 + gr_info.preflag * pretab[cb])); */
 				int idx = scalefac[ch].l[cb];
-	
+
 	   		if (gr_info.preflag != 0)
 			   	idx += pretab[cb];
-	
+
 			   idx = idx << gr_info.scalefac_scale;
 	         xr_1d[quotien][reste] *= two_to_negative_half_pow[idx];
 			}
 	      index++;
 		}
-	
+
 	   for (j=nonzero[ch]; j<576; j++)
 	   {
             // Modif E.B 02/22/99
@@ -976,10 +997,10 @@ final class LayerIIIDecoder implements FrameDecoder
             if(quotien < 0) quotien = 0;
 	     	xr_1d[quotien][reste] = 0.0f;
 	   }
-	
+
    	   return;
 	}
-	
+
     /**
 	 *
 	 */
@@ -991,12 +1012,12 @@ final class LayerIIIDecoder implements FrameDecoder
 	   int sfb, sfb_start, sfb_lines;
 	   int src_line, des_line;
 	   float[][] xr_1d = xr;
-	
+
 	   if ((gr_info.window_switching_flag !=0) && (gr_info.block_type == 2)) {
-	
+
 	      for(index=0; index<576; index++)
 	         out_1d[index] = 0.0f;
-	
+
 			if (gr_info.mixed_block_flag !=0 ) {
 				// NO REORDER FOR LOW 2 SUBBANDS
 	            for (index = 0; index < 36; index++)
@@ -1013,34 +1034,34 @@ final class LayerIIIDecoder implements FrameDecoder
 					     sfb_lines = sfBandIndex[sfreq].s[sfb+1] - sfb_start )
 	            		 {
 						   int sfb_start3 = (sfb_start << 2) - sfb_start;
-	
+
 							for(freq=0, freq3=0; freq<sfb_lines;
 	                             freq++, freq3+=3) {
-	
+
 								src_line = sfb_start3 + freq;
 								des_line = sfb_start3 + freq3;
                                 // Modif E.B 02/22/99
                                 int reste = src_line % SSLIMIT;
                                 int quotien = (int) ((src_line-reste)/SSLIMIT);
-								
+
 								out_1d[des_line] = xr_1d[quotien][reste];
 								src_line += sfb_lines;
 								des_line++;
-								
+
 								reste = src_line % SSLIMIT;
 								quotien = (int) ((src_line-reste)/SSLIMIT);
-								
+
 								out_1d[des_line] = xr_1d[quotien][reste];
 								src_line += sfb_lines;
 								des_line++;
-								
+
 								reste = src_line % SSLIMIT;
 								quotien = (int) ((src_line-reste)/SSLIMIT);
-								
+
 								out_1d[des_line] = xr_1d[quotien][reste];
 						   }
 	            	  }
-	
+
 			} else {  // pure short
 	      	for(index=0;index<576;index++)
 	      	{
@@ -1061,29 +1082,29 @@ final class LayerIIIDecoder implements FrameDecoder
 	      }
 		}
 	}
-	
+
 	/**
 	 *
 	 */
-	
+
 	int[] is_pos = new int[576];
 	float[] is_ratio = new float[576];
 
 	private void stereo(int gr)
 	{
 	  int sb, ss;
-	
+
 		if  (channels == 1) { // mono , bypass xr[0][][] to lr[0][][]
-	
+
 			for(sb=0;sb<SBLIMIT;sb++)
 				for(ss=0;ss<SSLIMIT;ss+=3) {
 					lr[0][sb][ss]   = ro[0][sb][ss];
 	            lr[0][sb][ss+1] = ro[0][sb][ss+1];
 					lr[0][sb][ss+2] = ro[0][sb][ss+2];
 	         }
-	
+
 	   } else {
-	
+
 		gr_info_s gr_info = (si.ch[0].gr[gr]);
 	    int mode_ext = header.mode_extension();
 		int sfb;
@@ -1092,25 +1113,25 @@ final class LayerIIIDecoder implements FrameDecoder
 
 		boolean ms_stereo = ((header.mode() == Header.JOINT_STEREO) && ((mode_ext & 0x2)!=0));
 		boolean i_stereo  = ((header.mode() == Header.JOINT_STEREO) && ((mode_ext & 0x1)!=0));
-	    boolean lsf = ((header.version() == Header.MPEG2_LSF));
-	
+		boolean lsf = ((header.version() == Header.MPEG2_LSF || header.version() == Header.MPEG25_LSF ));	// SZD
+
 		int io_type = (gr_info.scalefac_compress & 1);
-	
+
 	 	// initialization
-	
+
 	   for (i=0; i<576; i++)
 	   {
 	   		is_pos[i] = 7;
-			
+
 			is_ratio[i] = 0.0f;
 	   }
-	
+
 		if (i_stereo) {
 	   	if ((gr_info.window_switching_flag !=0 )&& (gr_info.block_type == 2)) {
 	      	if (gr_info.mixed_block_flag != 0) {
-	
+
 	         	 int max_sfb = 0;
-	
+
 					 for (int j=0; j<3; j++) {
 	            	 int sfbcnt;
 						sfbcnt = 2;
@@ -1118,7 +1139,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	               	i = sfBandIndex[sfreq].s[sfb];
 							lines = sfBandIndex[sfreq].s[sfb+1] - i;
 	                  i = (i << 2) - i + (j+1) * lines - 1;
-	
+
 							while (lines > 0) {
 	                  	if (ro[1][i/18][i%18] != 0.0f) {
 							// MDM: in java, array access is very slow.
@@ -1128,23 +1149,23 @@ final class LayerIIIDecoder implements FrameDecoder
 									sfb = -10;
 									lines = -10;
 								}
-	
+
 								lines--;
 								i--;
-	
+
 							} // while (lines > 0)
-	
+
 						} // for (sfb=12 ...
 						sfb = sfbcnt + 1;
-	
+
 						if (sfb > max_sfb)
 							max_sfb = sfb;
-	
+
 						while(sfb < 12) {
 	               	temp = sfBandIndex[sfreq].s[sfb];
 	               	sb   = sfBandIndex[sfreq].s[sfb+1] - temp;
 	                  i    = (temp << 2) - temp + j * sb;
-	
+
 							for ( ; sb > 0; sb--) {
 	                  	is_pos[i] = scalefac[1].s[j][sfb];
 								if (is_pos[i] != 7)
@@ -1152,7 +1173,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	                           i_stereo_k_values(is_pos[i], io_type, i);
 	                        else
 	                        	is_ratio[i] = TAN12[is_pos[i]];
-	
+
 								i++;
 							} // for (; sb>0...
 							sfb++;
@@ -1163,10 +1184,10 @@ final class LayerIIIDecoder implements FrameDecoder
 	               temp  = sfBandIndex[sfreq].s[11];
 	               sb = sfBandIndex[sfreq].s[12] - temp;
 	               i = (temp << 2) - temp + j * sb;
-	
+
 						for (; sb > 0; sb--) {
 	               	is_pos[i] = is_pos[sfb];
-	
+
 			            if (lsf) {
 			               k[0][i] = k[0][sfb];
 					         k[1][i] = k[1][sfb];
@@ -1219,7 +1240,7 @@ final class LayerIIIDecoder implements FrameDecoder
 							temp = sfBandIndex[sfreq].s[sfb];
 	                  lines = sfBandIndex[sfreq].s[sfb+1] - temp;
 	                  i = (temp << 2) - temp + (j+1) * lines - 1;
-	
+
 							while (lines > 0) {
 								if (ro[1][i/18][i%18] != 0.0f) {
 								// MDM: in java, array access is very slow.
@@ -1232,7 +1253,7 @@ final class LayerIIIDecoder implements FrameDecoder
 								lines--;
 								i--;
 							} // while (lines > 0) */
-	
+
 						} // for (sfb=12 ...
 						sfb = sfbcnt + 1;
 						while(sfb<12) {
@@ -1250,17 +1271,17 @@ final class LayerIIIDecoder implements FrameDecoder
 							} // for (; sb>0 ...
 							sfb++;
 						} // while (sfb<12)
-	
+
 						temp = sfBandIndex[sfreq].s[10];
 	               temp2= sfBandIndex[sfreq].s[11];
 	               sb   = temp2 - temp;
 	               sfb  = (temp << 2) - temp + j * sb;
 	               sb   = sfBandIndex[sfreq].s[12] - temp2;
 	               i    = (temp2 << 2) - temp2 + j * sb;
-	
+
 						for (; sb>0; sb--) {
 	               	is_pos[i] = is_pos[sfb];
-	
+
 			            if (lsf) {
 			               k[0][i] = k[0][sfb];
 					         k[1][i] = k[1][sfb];
@@ -1290,7 +1311,7 @@ final class LayerIIIDecoder implements FrameDecoder
 				i = 0;
 				while (sfBandIndex[sfreq].l[i] <= sb)
 					i++;
-	
+
 				sfb = i;
 				i = sfBandIndex[sfreq].l[i];
 				for (; sfb<21; sfb++) {
@@ -1309,7 +1330,7 @@ final class LayerIIIDecoder implements FrameDecoder
 				for (sb = 576 - sfBandIndex[sfreq].l[21]; (sb > 0) && (i<576); sb--)
 				{
 	         	is_pos[i] = is_pos[sfb]; // error here : i >=576
-	
+
 	            if (lsf) {
 	               k[0][i] = k[0][sfb];
 			         k[1][i] = k[1][sfb];
@@ -1320,7 +1341,7 @@ final class LayerIIIDecoder implements FrameDecoder
 				} // if (gr_info.mixed_block_flag)
 			} // if (gr_info.window_switching_flag ...
 		} // if (i_stereo)
-	
+
 	   	i = 0;
 			for(sb=0;sb<SBLIMIT;sb++)
 				for(ss=0;ss<SSLIMIT;ss++) {
@@ -1334,7 +1355,7 @@ final class LayerIIIDecoder implements FrameDecoder
 						}
 					}
 					else if (i_stereo) {
-	
+
 	            	if (lsf) {
 	                  lr[0][sb][ss] = ro[0][sb][ss] * k[0][i];
 	                  lr[1][sb][ss] = ro[0][sb][ss] * k[1][i];
@@ -1348,11 +1369,11 @@ final class LayerIIIDecoder implements FrameDecoder
 					} */
 	            i++;
 				}
-	
+
     	} // channels == 2
-	
+
 	}
-	
+
     /**
 	 *
 	 */
@@ -1362,18 +1383,18 @@ final class LayerIIIDecoder implements FrameDecoder
 	   gr_info_s gr_info = (si.ch[ch].gr[gr]);
 	   // 31 alias-reduction operations between each pair of sub-bands
 	   // with 8 butterflies between each pair
-	
+
 		if  ((gr_info.window_switching_flag !=0) && (gr_info.block_type == 2) &&
 			 !(gr_info.mixed_block_flag != 0) )
 	       return;
-	
+
 		if ((gr_info.window_switching_flag !=0) && (gr_info.mixed_block_flag != 0)&&
 		    (gr_info.block_type == 2)) {
 	      sb18lim = 18;
 		} else {
 			sb18lim = 558;
 	   }
-	
+
 	   for (sb18=0; sb18 < sb18lim; sb18+=18) {
 	      for (ss=0;ss<8;ss++) {
 	      	int src_idx1 = sb18 + 17 - ss;
@@ -1385,45 +1406,45 @@ final class LayerIIIDecoder implements FrameDecoder
 	      }
    	  }
 	}
-	
+
 	/**
 	 *
 	 */
-	
+
 	// MDM: tsOutCopy and rawout do not need initializing, so the arrays
-	// can be reused. 
+	// can be reused.
 	float[] tsOutCopy = new float[18];
 	float[] rawout = new float[36];
-	
+
 	private void hybrid(int ch, int gr)
-	{	   
+	{
 	   int bt;
 	   int sb18;
 	   gr_info_s gr_info = (si.ch[ch].gr[gr]);
 	   float[] tsOut;
-	   
+
 	   float[][] prvblk;
-	
-	   for(sb18=0;sb18<576;sb18+=18) 
+
+	   for(sb18=0;sb18<576;sb18+=18)
 	   {
 			bt = ((gr_info.window_switching_flag !=0 ) && (gr_info.mixed_block_flag !=0) &&
 					 (sb18 < 36)) ? 0 : gr_info.block_type;
-	
+
 		   tsOut = out_1d;
 	       // Modif E.B 02/22/99
-	       for (int cc = 0;cc<18;cc++) 
+	       for (int cc = 0;cc<18;cc++)
 			   tsOutCopy[cc] = tsOut[cc+sb18];
-	      
+
 		   inv_mdct(tsOutCopy, rawout, bt);
-		   
-		   
-		   for (int cc = 0;cc<18;cc++) 
+
+
+		   for (int cc = 0;cc<18;cc++)
 			   tsOut[cc+sb18] = tsOutCopy[cc];
 		   // Fin Modif
-	
+
 			// overlap addition
 		   prvblk = prevblck;
-	
+
 		   tsOut[0 + sb18]   = rawout[0]  + prvblk[ch][sb18 + 0];
 		   prvblk[ch][sb18 + 0]  = rawout[18];
 		   tsOut[1 + sb18]   = rawout[1]  + prvblk[ch][sb18 + 1];
@@ -1462,7 +1483,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	 	   prvblk[ch][sb18 + 17] = rawout[35];
    	  }
 	}
-	
+
     /**
 	 *
 	 */
@@ -1476,29 +1497,29 @@ final class LayerIIIDecoder implements FrameDecoder
 	      }
    		}
 	}
-	
+
 	/**
 	 * Fast INV_MDCT.
 	 */
-	
+
 	public void inv_mdct(float[] in, float[] out, int block_type)
-	{		 
+	{
 		 float[] win_bt;
 	     int   i;
-		 
+
 		float tmpf_0, tmpf_1, tmpf_2, tmpf_3, tmpf_4, tmpf_5, tmpf_6, tmpf_7, tmpf_8, tmpf_9;
 		float tmpf_10, tmpf_11, tmpf_12, tmpf_13, tmpf_14, tmpf_15, tmpf_16, tmpf_17;
-	  
-		tmpf_0 = tmpf_1 = tmpf_2 = tmpf_3 = tmpf_4 = tmpf_5 = tmpf_6 = tmpf_7 = tmpf_8 = tmpf_9 = 
+
+		tmpf_0 = tmpf_1 = tmpf_2 = tmpf_3 = tmpf_4 = tmpf_5 = tmpf_6 = tmpf_7 = tmpf_8 = tmpf_9 =
 		tmpf_10 = tmpf_11 = tmpf_12 = tmpf_13 = tmpf_14 = tmpf_15 = tmpf_16 = tmpf_17 = 0.0f;
-		 
-		
-		
+
+
+
 		 if(block_type == 2)
 		 {
-			 
+
 	/*
-	 *		
+	 *
 	 *		Under MicrosoftVM 2922, This causes a GPF, or
 	 *		At best, an ArrayIndexOutOfBoundsExceptin.
 			for(int p=0;p<36;p+=9)
@@ -1507,7 +1528,7 @@ final class LayerIIIDecoder implements FrameDecoder
 		      out[p+4] = out[p+5] = out[p+6] = out[p+7] =
 		      out[p+8] = 0.0f;
 		   }
-	*/		
+	*/
 			out[0] = 0.0f;
 			out[1] = 0.0f;
 			out[2] = 0.0f;
@@ -1544,9 +1565,9 @@ final class LayerIIIDecoder implements FrameDecoder
 			out[33] = 0.0f;
 			out[34] = 0.0f;
 			out[35] = 0.0f;
-			 
+
 	       int six_i = 0;
-	
+
 		   for(i=0;i<3;i++)
 	   	   {
 	      		// 12 point IMDCT
@@ -1554,10 +1575,10 @@ final class LayerIIIDecoder implements FrameDecoder
 	   			// Input aliasing for 12 pt IDCT
 		   		in[15+i] += in[12+i]; in[12+i] += in[9+i]; in[9+i]  +=  in[6+i];
 	   			in[6+i]  += in[3+i];  in[3+i]  += in[0+i];
-		
+
 		   		// Input aliasing on odd indices (for 6 point IDCT)
 	   			in[15+i] += in[9+i];  in[9+i]  += in[3+i];
-		
+
 		   		// 3 point IDCT on even indices
 		  		float 	pp1, pp2, sum;
 		    	pp2 = in[12+i] * 0.500000000f;
@@ -1566,7 +1587,7 @@ final class LayerIIIDecoder implements FrameDecoder
 		   		tmpf_1 = in[0+i] - in[12+i];
 		   		tmpf_0 = sum + pp1;
 		   		tmpf_2 = sum - pp1;
-		
+
 	      		// End 3 point IDCT on even indices
 		   		// 3 point IDCT on odd indices (for 6 point IDCT)
 		    	pp2 = in[15+i] * 0.500000000f;
@@ -1577,11 +1598,11 @@ final class LayerIIIDecoder implements FrameDecoder
 		   		tmpf_3 = sum - pp1;
 	   	    	// End 3 point IDCT on odd indices
 	   			// Twiddle factors on odd indices (for 6 point IDCT)
-		
+
 	   			tmpf_3 *= 1.931851653f;
 	   			tmpf_4 *= 0.707106781f;
 	   			tmpf_5 *= 0.517638090f;
-		
+
 		   		// Output butterflies on 2 3 point IDCT's (for 6 point IDCT)
 	   			float save = tmpf_0;
 	   			tmpf_0 += tmpf_5;
@@ -1592,19 +1613,19 @@ final class LayerIIIDecoder implements FrameDecoder
 		   		save = tmpf_2;
 		   		tmpf_2 += tmpf_3;
 		   		tmpf_3 = save - tmpf_3;
-	
+
 	   			// End 6 point IDCT
 		   		// Twiddle factors on indices (for 12 point IDCT)
-	
+
 		   		tmpf_0  *=  0.504314480f;
 		   		tmpf_1  *=  0.541196100f;
 		   		tmpf_2  *=  0.630236207f;
 		   		tmpf_3  *=  0.821339815f;
 		   		tmpf_4  *=  1.306562965f;
 		   		tmpf_5  *=  3.830648788f;
-	
+
 	      		// End 12 point IDCT
-	
+
 		   		// Shift to 12 point modified IDCT, multiply by window type 2
 		   		tmpf_8  = -tmpf_0 * 0.793353340f;
 		   		tmpf_9  = -tmpf_0 * 0.608761429f;
@@ -1612,17 +1633,17 @@ final class LayerIIIDecoder implements FrameDecoder
 		   		tmpf_10 = -tmpf_1 * 0.382683432f;
 		   		tmpf_6  = -tmpf_2 * 0.991444861f;
 		   		tmpf_11 = -tmpf_2 * 0.130526192f;
-	
+
 		   		tmpf_0  =  tmpf_3;
 		   		tmpf_1  =  tmpf_4 * 0.382683432f;
 		   		tmpf_2  =  tmpf_5 * 0.608761429f;
-	
+
 		   		tmpf_3  = -tmpf_5 * 0.793353340f;
 	   			tmpf_4  = -tmpf_4 * 0.923879532f;
 		   		tmpf_5  = -tmpf_0 * 0.991444861f;
-	
+
 		   		tmpf_0 *= 0.130526192f;
-			
+
 	   			out[six_i + 6]  += tmpf_0;
 				out[six_i + 7]  += tmpf_1;
 		   		out[six_i + 8]  += tmpf_2;
@@ -1635,7 +1656,7 @@ final class LayerIIIDecoder implements FrameDecoder
 				out[six_i + 15] += tmpf_9;
 		   		out[six_i + 16] += tmpf_10;
 				out[six_i + 17] += tmpf_11;
-	
+
 	   			six_i += 6;
 	   		}
 		 }
@@ -1648,15 +1669,15 @@ final class LayerIIIDecoder implements FrameDecoder
 	   		in[9] +=in[8];  in[8] +=in[7];  in[7] +=in[6];  in[6] +=in[5];
 	   		in[5] +=in[4];  in[4] +=in[3];  in[3] +=in[2];  in[2] +=in[1];
 	   		in[1] +=in[0];
-	
+
 	   		// 18 point IDCT for odd indices
 	   		// input aliasing for 18 point IDCT
 	   		in[17]+=in[15]; in[15]+=in[13]; in[13]+=in[11]; in[11]+=in[9];
 	   		in[9] +=in[7];  in[7] +=in[5];  in[5] +=in[3];  in[3] +=in[1];
-	
+
 	   		float tmp0,tmp1,tmp2,tmp3,tmp4,tmp0_,tmp1_,tmp2_,tmp3_;
 	   		float tmp0o,tmp1o,tmp2o,tmp3o,tmp4o,tmp0_o,tmp1_o,tmp2_o,tmp3_o;
-	
+
 			// Fast 9 Point Inverse Discrete Cosine Transform
 			//
 			// By  Francois-Raymond Boyer
@@ -1667,52 +1688,52 @@ final class LayerIIIDecoder implements FrameDecoder
 			//  (takes a lot of time to convert float to and from iternal FPU representation)
 			//
 			// It is a simple "factorization" of the IDCT matrix.
-	
+
 	   		// 9 point IDCT on even indices
-	  
+
 			// 5 points on odd indices (not realy an IDCT)
 	   		float i00 = in[0]+in[0];
 	   		float iip12 = i00 + in[12];
-	
+
 	   		tmp0 = iip12 + in[4]*1.8793852415718f  + in[8]*1.532088886238f   + in[16]*0.34729635533386f;
 	   		tmp1 = i00    + in[4]                   - in[8] - in[12] - in[12] - in[16];
 	   		tmp2 = iip12 - in[4]*0.34729635533386f - in[8]*1.8793852415718f  + in[16]*1.532088886238f;
 	   		tmp3 = iip12 - in[4]*1.532088886238f   + in[8]*0.34729635533386f - in[16]*1.8793852415718f;
 	   		tmp4 = in[0] - in[4]                   + in[8] - in[12]          + in[16];
-	
+
 			// 4 points on even indices
 	   		float i66_ = in[6]*1.732050808f;		// Sqrt[3]
-	
+
 	   		tmp0_ = in[2]*1.9696155060244f  + i66_ + in[10]*1.2855752193731f  + in[14]*0.68404028665134f;
 	   		tmp1_ = (in[2]                        - in[10]                   - in[14])*1.732050808f;
 	   		tmp2_ = in[2]*1.2855752193731f  - i66_ - in[10]*0.68404028665134f + in[14]*1.9696155060244f;
 	   		tmp3_ = in[2]*0.68404028665134f - i66_ + in[10]*1.9696155060244f  - in[14]*1.2855752193731f;
-	
+
 	   		// 9 point IDCT on odd indices
 			// 5 points on odd indices (not realy an IDCT)
 	   		float i0 = in[0+1]+in[0+1];
 	   		float i0p12 = i0 + in[12+1];
-	
+
 	   		tmp0o = i0p12   + in[4+1]*1.8793852415718f  + in[8+1]*1.532088886238f       + in[16+1]*0.34729635533386f;
 	   		tmp1o = i0      + in[4+1]                   - in[8+1] - in[12+1] - in[12+1] - in[16+1];
 	   		tmp2o = i0p12   - in[4+1]*0.34729635533386f - in[8+1]*1.8793852415718f      + in[16+1]*1.532088886238f;
 	   		tmp3o = i0p12   - in[4+1]*1.532088886238f   + in[8+1]*0.34729635533386f     - in[16+1]*1.8793852415718f;
 	   		tmp4o = (in[0+1] - in[4+1]                   + in[8+1] - in[12+1]            + in[16+1])*0.707106781f; // Twiddled
-	
+
 			// 4 points on even indices
 	   		float i6_ = in[6+1]*1.732050808f;		// Sqrt[3]
-	
+
 	   		tmp0_o = in[2+1]*1.9696155060244f  + i6_ + in[10+1]*1.2855752193731f  + in[14+1]*0.68404028665134f;
 	   		tmp1_o = (in[2+1]                        - in[10+1]                   - in[14+1])*1.732050808f;
 	   		tmp2_o = in[2+1]*1.2855752193731f  - i6_ - in[10+1]*0.68404028665134f + in[14+1]*1.9696155060244f;
 	   		tmp3_o = in[2+1]*0.68404028665134f - i6_ + in[10+1]*1.9696155060244f  - in[14+1]*1.2855752193731f;
-	
+
 	   		// Twiddle factors on odd indices
 	   		// and
 	   		// Butterflies on 9 point IDCT's
 	   		// and
 	   		// twiddle factors for 36 point IDCT
-	
+
 	   		float e, o;
 	   		e = tmp0 + tmp0_; o = (tmp0o + tmp0_o)*0.501909918f; tmpf_0 = e + o;    tmpf_17 = e - o;
 	   		e = tmp1 + tmp1_; o = (tmp1o + tmp1_o)*0.517638090f; tmpf_1 = e + o;    tmpf_16 = e - o;
@@ -1723,11 +1744,11 @@ final class LayerIIIDecoder implements FrameDecoder
 	   		e = tmp2 - tmp2_; o = (tmp2o - tmp2_o)*1.183100792f; tmpf_6 = e + o;    tmpf_11 = e - o;
 	   		e = tmp1 - tmp1_; o = (tmp1o - tmp1_o)*1.931851653f; tmpf_7 = e + o;    tmpf_10 = e - o;
 	   		e = tmp0 - tmp0_; o = (tmp0o - tmp0_o)*5.736856623f; tmpf_8 = e + o;    tmpf_9 =  e - o;
-	
+
 	   		// end 36 point IDCT */
 			// shift to modified IDCT
 	   		win_bt = win[block_type];
-	
+
 			out[0] =-tmpf_9  * win_bt[0];
 	   		out[1] =-tmpf_10 * win_bt[1];
 			out[2] =-tmpf_11 * win_bt[2];
@@ -1764,9 +1785,9 @@ final class LayerIIIDecoder implements FrameDecoder
 			out[33]= tmpf_6  * win_bt[33];
 			out[34]= tmpf_7  * win_bt[34];
 			out[35]= tmpf_8  * win_bt[35];
-		}	
+		}
 	}
-	
+
     private int counter = 0;
 	private static final int		SSLIMIT=18;
 	private static final int		SBLIMIT=32;
@@ -1782,7 +1803,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	{
 	   public int[] 		l;
    	   public int[] 		s;
-	   
+
 	   public SBI()
 	   {
 	   		l = new int[23];
@@ -1811,7 +1832,7 @@ final class LayerIIIDecoder implements FrameDecoder
 		public int 		preflag = 0;
 		public int 		scalefac_scale = 0;
 		public int 		count1table_select = 0;
-		
+
 		/**
 		 * Dummy Constructor
 		 */
@@ -1826,7 +1847,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	{
 		public int[]			scfsi;
 		public gr_info_s[] 		gr;
-		
+
 		/**
 		 * Dummy Constructor
 		 */
@@ -1841,7 +1862,7 @@ final class LayerIIIDecoder implements FrameDecoder
 
 	static class III_side_info_t
 	{
-	
+
 		public int 				main_data_begin = 0;
 		public int 				private_bits = 0;
 		public temporaire[]		ch;
@@ -1855,7 +1876,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	   			ch[1] = new temporaire();
 		}
 	}
-	
+
 	static class temporaire2
 	{
 		public int[]		 l;         /* [cb] */
@@ -1881,7 +1902,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	//   		tab = new temporaire2[2];
 	//	}
 	//}
-	
+
 	private static final int slen[][] =
 	{
 	 {0, 0, 0, 0, 3, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4},
@@ -1890,9 +1911,9 @@ final class LayerIIIDecoder implements FrameDecoder
 
 	public static final int pretab[] =
 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 0};
-	
+
     private SBI[]			sfBandIndex; // Init in the constructor.
-	
+
 	public static final float two_to_negative_half_pow[] =
 	{ 1.0000000000E+00f, 7.0710678119E-01f, 5.0000000000E-01f, 3.5355339059E-01f,
 	  2.5000000000E-01f, 1.7677669530E-01f, 1.2500000000E-01f, 8.8388347648E-02f,
@@ -1912,21 +1933,21 @@ final class LayerIIIDecoder implements FrameDecoder
 	  9.3132257462E-10f, 6.5854450798E-10f, 4.6566128731E-10f, 3.2927225399E-10f
 	};
 
-	
+
 	public static final float t_43[] = create_t_43();
-	
+
 	static private float[] create_t_43()
 	{
 		float[] t43 = new float[8192];
 		final double d43 = (4.0/3.0);
-				
+
 		for (int i=0; i<8192; i++)
 		{
 			t43[i] = (float)Math.pow(i, d43);
-		}		
+		}
 		return t43;
 	}
-	
+
 	public static final float io[][] =
 	{
 	 { 1.0000000000E+00f, 8.4089641526E-01f, 7.0710678119E-01f, 5.9460355751E-01f,
@@ -1939,7 +1960,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	   7.8125000006E-03f, 6.5695032447E-03f, 5.5242717285E-03f, 4.6453402934E-03f },
 	 { 1.0000000000E+00f, 7.0710678119E-01f, 5.0000000000E-01f, 3.5355339060E-01f,
 	   2.5000000000E-01f, 1.7677669530E-01f, 1.2500000000E-01f, 8.8388347650E-02f,
-	   6.2500000001E-02f, 4.4194173825E-02f, 3.1250000001E-02f, 2.2097086913E-02f, 
+	   6.2500000001E-02f, 4.4194173825E-02f, 3.1250000001E-02f, 2.2097086913E-02f,
 	   1.5625000000E-02f, 1.1048543456E-02f, 7.8125000002E-03f, 5.5242717282E-03f,
 	   3.9062500001E-03f, 2.7621358641E-03f, 1.9531250001E-03f, 1.3810679321E-03f,
 	   9.7656250004E-04f, 6.9053396603E-04f, 4.8828125002E-04f, 3.4526698302E-04f,
@@ -1957,7 +1978,7 @@ final class LayerIIIDecoder implements FrameDecoder
 	 0.0f, 0.26794919f, 0.57735027f, 1.0f
 	};
 
-	// REVIEW: in java, the array lookup may well be slower than 
+	// REVIEW: in java, the array lookup may well be slower than
 	// the actual calculation
 	// 576 / 18
 /*
@@ -1996,7 +2017,7 @@ final class LayerIIIDecoder implements FrameDecoder
 		30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
 		31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31
 	};
-	
+
 	// 576 % 18
 	private static final int ss_mod[] =
 	{
@@ -2034,12 +2055,12 @@ final class LayerIIIDecoder implements FrameDecoder
 		 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17
 	};
 */
-	private static final int reorder_table[][] = loadReorderTable();
+	private static /*final*/ int reorder_table[][]/* = loadReorderTable()*/;	// SZD: will be generated on demand
 
 	/**
 	 * Loads the data for the reorder
 	 */
-	private static int[][] loadReorderTable()
+	/*private static int[][] loadReorderTable()	// SZD: table will be generated
 	{
 		try
 		{
@@ -2051,9 +2072,22 @@ final class LayerIIIDecoder implements FrameDecoder
 		{
 			throw new ExceptionInInitializerError(ex);
 		}
+	}*/
+
+	static int[] reorder(int scalefac_band[]) {	// SZD: converted from LAME
+		int j = 0;
+		int ix[] = new int[576];
+		for(int sfb = 0; sfb < 13; sfb++) {
+			int start = scalefac_band[sfb];
+			int end   = scalefac_band[sfb + 1];
+			for(int window = 0; window < 3; window++)
+				for(int i = start; i < end; i++)
+					ix[3 * i + window] = j++;
+		}
+		return ix;
 	}
-/*	
-	static final int reorder_table_data[][] =
+
+	/*static final int reorder_table_data[][]; =
 	{
 	 {  0,  4,  8,  1,  5,  9,  2,  6, 10,  3,  7, 11, 12, 16, 20, 13,
 	   17, 21, 14, 18, 22, 15, 19, 23, 24, 28, 32, 25, 29, 33, 26, 30,
@@ -2273,13 +2307,13 @@ final class LayerIIIDecoder implements FrameDecoder
 	  570,547,559,571,548,560,572,549,561,573,550,562,574,551,563,575}
 	};
 */
-	
+
 	private static final float cs[] =
 	{
 	 0.857492925712f, 0.881741997318f, 0.949628649103f, 0.983314592492f,
 	 0.995517816065f, 0.999160558175f, 0.999899195243f, 0.999993155067f
 	};
-	
+
 	private static final float ca[] =
 	{
 	 -0.5144957554270f, -0.4717319685650f, -0.3133774542040f, -0.1819131996110f,
@@ -2294,14 +2328,14 @@ final class LayerIIIDecoder implements FrameDecoder
 	/*                            L3TYPE                        */
 	/************************************************************/
 
-	
+
 	/***************************************************************/
 	/*                          END OF L3TYPE                      */
 	/***************************************************************/
-	
+
 	/***************************************************************/
 	/*                             INV_MDCT                        */
-	/***************************************************************/	
+	/***************************************************************/
 	public static final float win[][] =
 	{
 	 { -1.6141214951E-02f, -5.3603178919E-02f, -1.0070713296E-01f, -1.6280817573E-01f,
@@ -2313,27 +2347,27 @@ final class LayerIIIDecoder implements FrameDecoder
 	   -2.1596714708E-01f, -2.0004979098E-01f, -1.8449493497E-01f, -1.6905846094E-01f,
 	   -1.5350360518E-01f, -1.3758624925E-01f, -1.2103922149E-01f, -2.0710679058E-01f,
 	   -8.4752577594E-02f, -6.4157525656E-02f, -4.1131172614E-02f, -1.4790705759E-02f },
-	
+
 	 { -1.6141214951E-02f, -5.3603178919E-02f, -1.0070713296E-01f, -1.6280817573E-01f,
 	   -4.9999999679E-01f, -3.8388735032E-01f, -6.2061144372E-01f, -1.1659756083E+00f,
 	   -3.8720752656E+00f, -4.2256286556E+00f, -1.5195289984E+00f, -9.7416483388E-01f,
 	   -7.3744074053E-01f, -1.2071067773E+00f, -5.1636156596E-01f, -4.5426052317E-01f,
 	   -4.0715656898E-01f, -3.6969460527E-01f, -3.3908542600E-01f, -3.1511810350E-01f,
-	   -2.9642226150E-01f, -2.8184548650E-01f, -5.4119610000E-01f, -2.6213228100E-01f, 
-	   -2.5387916537E-01f, -2.3296291359E-01f, -1.9852728987E-01f, -1.5233534808E-01f, 
+	   -2.9642226150E-01f, -2.8184548650E-01f, -5.4119610000E-01f, -2.6213228100E-01f,
+	   -2.5387916537E-01f, -2.3296291359E-01f, -1.9852728987E-01f, -1.5233534808E-01f,
 	   -9.6496400054E-02f, -3.3423828516E-02f, 0.0000000000E+00f, 0.0000000000E+00f,
 	   0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f },
-	
-	 { -4.8300800645E-02f, -1.5715656932E-01f, -2.8325045177E-01f, -4.2953747763E-01f, 
+
+	 { -4.8300800645E-02f, -1.5715656932E-01f, -2.8325045177E-01f, -4.2953747763E-01f,
 	   -1.2071067795E+00f, -8.2426483178E-01f, -1.1451749106E+00f, -1.7695290101E+00f,
-	   -4.5470225061E+00f, -3.4890531002E+00f, -7.3296292804E-01f, -1.5076514758E-01f, 
+	   -4.5470225061E+00f, -3.4890531002E+00f, -7.3296292804E-01f, -1.5076514758E-01f,
 	   0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f,
 	   0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f,
 	   0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f,
-	   0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 
+	   0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f,
 	   0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f,
 	   0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f },
-	
+
 	 { 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f, 0.0000000000E+00f,
 	   0.0000000000E+00f, 0.0000000000E+00f, -1.5076513660E-01f, -7.3296291107E-01f,
 	   -3.4890530566E+00f, -4.5470224727E+00f, -1.7695290031E+00f, -1.1451749092E+00f,
@@ -2346,25 +2380,25 @@ final class LayerIIIDecoder implements FrameDecoder
 	};
 	/***************************************************************/
 	/*                         END OF INV_MDCT                     */
-	/***************************************************************/	
+	/***************************************************************/
 
-	class Sftable 
+	class Sftable
 	{
 		public int[]	 l;
 		public int[]	 s;
-		
+
 		public Sftable()
 		{
 			l = new int[5];
 			s = new int[3];
 		}
-		
+
 		public Sftable(int[] thel, int[] thes)
 		{
 			l = thel;
 			s = thes;
-		}	
-	} 
+		}
+	}
 
 	public Sftable				sftable;
 
@@ -2376,5 +2410,5 @@ final class LayerIIIDecoder implements FrameDecoder
     {{ 6, 6, 6, 3} , {12, 9, 9, 6} , { 6,12, 9, 6}},
     {{ 8, 8, 5, 0} , {15,12, 9, 0} , { 6,18, 9, 0}}};
 
-	
+
 }

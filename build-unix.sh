@@ -1,6 +1,6 @@
 #!/bin/sh
 #######################################################
-#         JavaLayer 0.1.2 Un*x Build Script
+#         JavaLayer 0.2 Un*x Build Script
 #
 # Project Homepage :
 #   http://www.javazoom.net/javalayer/javalayer.html
@@ -12,7 +12,7 @@
 
 # JAVA_HOME and JL must be set below
 JAVA_HOME=/usr/local/java/jdk1.3
-JL=/home/javazoom/JavaLayer0.1.2
+JL=/home/javazoom/JavaLayer0.2
 
 #---------------------------
 # Do not modify lines below
@@ -35,5 +35,5 @@ javac -classpath $JL/classes -d $JL/classes *.java
 
 # Jar Generation
 cd $JL/classes
-jar cvf ../jl012.jar *
+jar cvf ../jl020.jar *
 cd $JL
