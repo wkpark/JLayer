@@ -1,17 +1,17 @@
 rem #######################################################
-rem #         JavaLayer 0.1.1 WIN32 Build Script
+rem #         JavaLayer 0.1.2 WIN32 Build Script
 rem #
 rem # Project Homepage :
 rem #   http://www.javazoom.net/javalayer/javalayer.html 
 rem #
-rem # Developer Homepage :
-rem #   http://sourceforge.net/project/?group_id=1344
+rem # Java and MP3 online Forums :
+rem #   http://www.javazoom.net/services/forums/index.jsp
 rem #
 rem #######################################################
 
 rem # JAVA_HOME and JL must be set below
 set JAVA_HOME=c:\jdk1.3
-set JL=c:\JavaLayer0.1.1
+set JL=c:\JavaLayer0.1.2
 
 rem #---------------------------
 rem # Do not modify lines below
@@ -34,5 +34,5 @@ javac -classpath %JL%\classes -d %JL%\classes *.java
 
 rem # JAR Generation
 cd %JL%\classes
-jar cvf ..\jl011.jar *
+jar cvf ..\jl012.jar *
 cd %JL%

@@ -1,18 +1,18 @@
 #!/bin/sh
 #######################################################
-#         JavaLayer 0.1.1 Unix Build Script
+#         JavaLayer 0.1.2 Un*x Build Script
 #
 # Project Homepage :
 #   http://www.javazoom.net/javalayer/javalayer.html
 #
-# Developer Homepage :
-#   http://sourceforge.net/project/?group_id=1344
+# Java and MP3 online Forums :
+#   http://www.javazoom.net/services/forums/index.jsp
 #
 #######################################################
 
 # JAVA_HOME and JL must be set below
 JAVA_HOME=/usr/local/java/jdk1.3
-JL=/home/javazoom/JavaLayer0.1.1
+JL=/home/javazoom/JavaLayer0.1.2
 
 #---------------------------
 # Do not modify lines below
@@ -35,5 +35,5 @@ javac -classpath $JL/classes -d $JL/classes *.java
 
 # Jar Generation
 cd $JL/classes
-jar cvf ../jl011.jar *
+jar cvf ../jl012.jar *
 cd $JL

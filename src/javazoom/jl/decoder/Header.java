@@ -4,7 +4,7 @@
  *---------------------------------------------------------------------------
  * Declarations for MPEG header class
  * A few layer III, MPEG-2 LSF, and seeking modifications made by Jeff Tsay.
- * Last modified : 04/19/97 
+ * Last modified : 04/19/97
  *
  *  @(#) header.h 1.7, last edit: 6/15/94 16:55:33
  *  @(#) Copyright (C) 1993, 1994 Tobias Bading (bading@cs.tu-berlin.de)
@@ -29,27 +29,27 @@ package javazoom.jl.decoder;
 
 /**
  * Class for extracting information from a frame header.
- * 
- *  
+ *
+ *
  */
 // TODO: move strings into resources
 
 public final class Header
 {
-	public  static final int[][]	frequencies = 
+	public  static final int[][]	frequencies =
 						{{22050, 24000, 16000, 1},
 						{44100, 48000, 32000, 1}};
-		  
+
 	/**
-	 * Constant for MPEG-2 LSF version 
+	 * Constant for MPEG-2 LSF version
 	 */
 	public static final int		MPEG2_LSF = 0;
-		
+
 	/**
 	 * Constant for MPEG-1 version
 	 */
 	public static final int		MPEG1 = 1;
-		
+
 	public static final int		STEREO = 0;
 	public static final int		JOINT_STEREO = 1;
 	public static final int		DUAL_CHANNEL = 2;
@@ -67,14 +67,15 @@ public final class Header
 	private boolean			h_copyright, h_original;
 	private byte			syncmode = Bitstream.INITIAL_SYNC;
 	private Crc16			crc;
-		  		
+
 	public short			checksum;
 	public int				framesize;
 	public int				nSlots;
+	private int 			_headerstring = -1;
 
-		  
+
 	Header()
-	{ 	
+	{
 	}
 	public String toString()
 	{
@@ -92,37 +93,38 @@ public final class Header
 		buffer.append(sample_frequency_string());
 		buffer.append(',');
 		buffer.append(' ');
-		buffer.append(bitrate_string());		
-		
+		buffer.append(bitrate_string());
+
 		String s =  buffer.toString();
 		return s;
 	}
-	
+
 	/**
 	 * Read a 32-bit header from the bitstream.
 	 */
-	void read_header(Bitstream stream, Crc16[] crcp) 
+	void read_header(Bitstream stream, Crc16[] crcp)
 		throws BitstreamException
 	{
 	  int headerstring;
 	  int channel_bitrate;
-	
+
 	  boolean sync = false;
-	  
+
 	  do
 	  {
-	  
+
 		headerstring = stream.syncHeader(syncmode);
-			  
+		_headerstring = headerstring;
+
 		if (syncmode==Bitstream.INITIAL_SYNC)
-		{				
+		{
 				h_version = ((headerstring >>> 19) & 1);
 
 				if ((h_sample_frequency = ((headerstring >>> 10) & 3)) == 3)
 				{
 					throw stream.newBitstreamException(Bitstream.UNKNOWN_ERROR);
-	 			}			
-		} 
+	 			}
+		}
 
 			h_layer   = 4 - (headerstring >>> 17) & 3;
 		h_protection_bit = (headerstring >>> 16) & 1;
@@ -134,7 +136,7 @@ public final class Header
 		else h_intensity_stereo_bound = 0;		// should never be used
 		if (((headerstring >>> 3) & 1) == 1) h_copyright = true;
 		if (((headerstring >>> 2) & 1) == 1) h_original = true;
-				
+
 
 		// calculate number of subbands:
 		if (h_layer == 1) h_number_of_subbands = 32;
@@ -162,7 +164,7 @@ public final class Header
 
 		// read framedata:
 		stream.read_frame_data(framesize);
-	
+
 		if (stream.isSyncCurrentPosition(syncmode))
 		{
 			 if (syncmode==Bitstream.INITIAL_SYNC)
@@ -178,9 +180,9 @@ public final class Header
 		}
 	  }
 	  while (!sync);
-	  
+
 	  stream.parse_frame();
-	  
+
 	  if (h_protection_bit == 0)
 	  {
 	   // frame contains a crc checksum
@@ -191,10 +193,10 @@ public final class Header
 	   crcp[0] = crc;
 	  }
 	  else crcp[0] = null;
-	  if (h_sample_frequency == FOURTYFOUR_POINT_ONE) 
+	  if (h_sample_frequency == FOURTYFOUR_POINT_ONE)
 	  {
 	   /*
-	  	if (offset == null) 
+	  	if (offset == null)
 	     {
 	  	  int max = max_number_of_frames(stream);
 	  	  offset = new int[max];
@@ -212,9 +214,9 @@ public final class Header
 		       offset[0] = h_padding_bit;
 	     }
 	  */
-	  }		
+	  }
 	}
-		  
+
 	// Functions to query header contents:
 	/**
 	 * Returns version.
@@ -225,7 +227,7 @@ public final class Header
 	 * Returns Layer ID.
 	 */
 	public int layer() { return h_layer; }
-		  
+
 	/**
 	 * Returns bitrate index.
 	 */
@@ -275,7 +277,7 @@ public final class Header
 	/**
 	 * Returns Layer III Padding bit.
 	 */
-	public boolean padding() 
+	public boolean padding()
 	{
 		if (h_padding_bit == 0) return false;
 	  else return true;
@@ -285,14 +287,14 @@ public final class Header
 	 * Returns Slots.
 	 */
 	public int slots() { return nSlots; }
-		  
+
 	/**
 	 * Returns Mode Extension.
 	 */
 	public int mode_extension() { return h_mode_extension; }
-	
-	
-	private static final int bitrates[][][] = {
+
+	// E.B -> private to public
+	public static final int bitrates[][][] = {
 		{{0 /*free format*/, 32000, 48000, 56000, 64000, 80000, 96000,
 	  112000, 128000, 144000, 160000, 176000, 192000 ,224000, 256000, 0},
 	 	{0 /*free format*/, 8000, 16000, 24000, 32000, 40000, 48000,
@@ -305,14 +307,16 @@ public final class Header
 	   112000, 128000, 160000, 192000, 224000, 256000, 320000, 384000, 0},
 	  {0 /*free format*/, 32000, 40000, 48000, 56000, 64000, 80000,
 	   96000, 112000, 128000, 160000, 192000, 224000, 256000, 320000, 0}}
-		};	
+		};
+
+	// E.B -> private to public
 	/**
 	 * Calculate Frame size.
 	 * Calculates framesize in bytes excluding header size.
 	 */
-	private int calculate_framesize()
+	public int calculate_framesize()
 	{
-	  
+
 	 if (h_layer == 1)
 	 {
 	   framesize = (12 * bitrates[h_version][0][h_bitrate_index]) /
@@ -351,7 +355,51 @@ public final class Header
 	 framesize -= 4;             // subtract header size
 	 return framesize;
 	}
-		  	
+
+	/**
+	 * Returns the maximum number of frames in the stream.
+	 */
+	public int max_number_of_frames(int streamsize)
+	{
+		  return(streamsize / (framesize + 4 - h_padding_bit));
+	}
+
+	/**
+	 * Returns the maximum number of frames in the stream.
+	 */
+	public int min_number_of_frames(int streamsize)
+	{
+	  return(streamsize / (framesize + 5 - h_padding_bit));
+	}
+
+
+	/**
+	 * Returns ms/frame.
+	 */
+	public float ms_per_frame()
+	{
+		float ms_per_frame_array[][] = {{8.707483f,  8.0f, 12.0f},
+		 						        {26.12245f, 24.0f, 36.0f},
+	   	                                {26.12245f, 24.0f, 36.0f}};
+		return(ms_per_frame_array[h_layer-1][h_sample_frequency]);
+	}
+
+	/**
+	 * Returns total ms.
+	 */
+	public float total_ms(int streamsize)
+	{
+		return(max_number_of_frames(streamsize) * ms_per_frame());
+	}
+
+	/**
+	 * Returns synchronized header.
+	 */
+	public int getSyncHeader()
+	{
+		return _headerstring;
+	}
+
 	// functions which return header informations as strings:
 	/**
 	 * Return Layer version.
@@ -370,8 +418,8 @@ public final class Header
 	  return null;
 	}
 
-	
-	static private final String bitrate_str[][][] = {
+	// E.B -> private to public
+	static public final String bitrate_str[][][] = {
 		{{"free format", "32 kbit/s", "48 kbit/s", "56 kbit/s", "64 kbit/s",
 	  "80 kbit/s", "96 kbit/s", "112 kbit/s", "128 kbit/s", "144 kbit/s",
 	  "160 kbit/s", "176 kbit/s", "192 kbit/s", "224 kbit/s", "256 kbit/s",
@@ -397,14 +445,14 @@ public final class Header
 	  "160 kbit/s", "192 kbit/s", "224 kbit/s", "256 kbit/s", "320 kbit/s",
 	  "forbidden"}}
 	  };
-	
+
 	/**
 	 * Returns Bitrate.
 	 */
 	public String bitrate_string()
 	{
 	  return bitrate_str[h_version][h_layer - 1][h_bitrate_index];
-	}  
+	}
 
 	/**
 	 * Returns Frequency
@@ -431,14 +479,14 @@ public final class Header
 	  }
 	  return(null);
 	}
-		  
+
 	/**
 	 * Returns Mode.
 	 */
 	public String mode_string()
 	{
 	   switch (h_mode)
-	   { 
+	   {
 	     case STEREO:
 	  	return "Stereo";
 	     case JOINT_STEREO:
@@ -450,7 +498,7 @@ public final class Header
 	   }
 	   return null;
 	}
-		  
+
 	/**
 	 * Returns Version.
 	 */
@@ -465,7 +513,7 @@ public final class Header
 	  }
 	  return(null);
 	}
-		  
+
 	/**
 	 * Returns the number of subbands in the current frame.
 	 */
@@ -479,5 +527,5 @@ public final class Header
 	 */
 	public int intensity_stereo_bound() {return h_intensity_stereo_bound;}
 
-		  
+
 }
