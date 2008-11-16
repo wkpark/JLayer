@@ -1,4 +1,6 @@
 /*
+ * 09/26/08     throw exception on subbband alloc error: Christopher G. Jennings (cjennings@acm.org)
+ * 
  * 11/19/04		1.0 moved to LGPL.
  * 
  * 12/12/99		Initial version. Adapted from javalayer.java
@@ -38,7 +40,7 @@ class LayerIDecoder implements FrameDecoder
 	
 	protected int					num_subbands;
 	protected Subband[]				subbands;
-	protected Crc16				crc	= null;	// new Crc16[1] to enable CRC checking.
+	protected Crc16					crc	= null;	// new Crc16[1] to enable CRC checking.
 	
 	public LayerIDecoder()
 	{
@@ -58,9 +60,7 @@ class LayerIDecoder implements FrameDecoder
 		  
 	}
 	
-	
-	
-	public void decodeFrame()
+	public void decodeFrame() throws DecoderException
 	{
 		
 		num_subbands = header.number_of_subbands();
@@ -101,7 +101,7 @@ class LayerIDecoder implements FrameDecoder
   	    }		
 	}
 	
-	protected void readAllocation()
+	protected void readAllocation() throws DecoderException
 	{
 		// start to read audio data:
   	    for (int i = 0; i < num_subbands; ++i)
@@ -174,7 +174,7 @@ class LayerIDecoder implements FrameDecoder
 	  0.00000190734863f, 0.00000151386361f, 0.00000120155435f, 0.00000000000000f /* illegal scalefactor */
 	  };
 
-	  public abstract void read_allocation (Bitstream stream, Header header, Crc16 crc);
+	  public abstract void read_allocation (Bitstream stream, Header header, Crc16 crc) throws DecoderException;
 	  public abstract void read_scalefactor (Bitstream stream, Header header);
 	  public abstract boolean read_sampledata (Bitstream stream);
 	  public abstract boolean put_next_sample (int channels, SynthesisFilter filter1, SynthesisFilter filter2);
@@ -227,13 +227,17 @@ class LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_allocation(Bitstream stream, Header header, Crc16 crc)
+	  public void read_allocation(Bitstream stream, Header header, Crc16 crc) throws DecoderException
 	  {
-	    if ((allocation = stream.get_bits (4)) == 15) ;
-		//	 cerr << "WARNING: stream contains an illegal allocation!\n";
-		// MPEG-stream is corrupted!
-		if (crc != null)
-		 	crc.add_bits (allocation, 4);
+	    if ((allocation = stream.get_bits (4)) == 15) 
+	    {
+	    	// CGJ: catch this condition and throw appropriate exception
+	    	throw new DecoderException(DecoderErrors.ILLEGAL_SUBBAND_ALLOCATION, null);    	
+	    	//	 cerr << "WARNING: stream contains an illegal allocation!\n";
+			// MPEG-stream is corrupted!
+	    }
+
+		if (crc != null) crc.add_bits (allocation, 4);
 	  	if (allocation != 0)
 	    {
 		 samplelength = allocation + 1;
@@ -299,7 +303,7 @@ class LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_allocation(Bitstream stream, Header header, Crc16 crc)
+	  public void read_allocation(Bitstream stream, Header header, Crc16 crc) throws DecoderException
 	  {
 	    super.read_allocation (stream, header, crc);
 	  }
@@ -377,7 +381,7 @@ class LayerIDecoder implements FrameDecoder
 	  /**
 	   *
 	   */
-	  public void read_allocation (Bitstream stream, Header header, Crc16 crc)
+	  public void read_allocation (Bitstream stream, Header header, Crc16 crc) throws DecoderException
 	  {
 	 	 allocation = stream.get_bits(4);
 	     channel2_allocation = stream.get_bits(4);

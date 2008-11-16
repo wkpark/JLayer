@@ -1,5 +1,5 @@
- JLayer 1.0
- JavaZOOM 1999-2005
+ JLayer 1.0.1
+ JavaZOOM 1999-2008
 
  Project Homepage :
    http://www.javazoom.net/javalayer/javalayer.html 
@@ -20,7 +20,7 @@ FAQ :
 
 - How to install JLayer ?
   Before running JLayer you must set PATH and CLASSPATH for JAVA
-  and you must add jl1.0.jar to the CLASSPATH.
+  and you must add jl1.0.1.jar to the CLASSPATH.
 
 - Do I need JMF to run JLayer player ?
   No, JMF is not required. You just need a JVM JavaSound 1.0 compliant.

@@ -1,5 +1,5 @@
 rem #######################################################
-rem #         JLayer 1.0 WIN32 Build Script
+rem #         JLayer 1.0.1 WIN32 Build Script
 rem #
 rem # Project Homepage :
 rem #   http://www.javazoom.net/javalayer/javalayer.html 
@@ -11,7 +11,7 @@ rem #######################################################
 
 rem # JAVA_HOME and JL must be set below
 set JAVA_HOME=c:\jdk1.3.1
-set JL=c:\JLayer1.0
+set JL=c:\JLayer1.0.1
 
 rem #---------------------------
 rem # Do not modify lines below
@@ -38,5 +38,5 @@ javac -classpath %JL%\classes -d %JL%\classes *.java
 
 rem # JAR Generation
 cd %JL%\classes
-jar cvf ..\jl1.0.jar *
+jar cvf ..\jl1.0.1.jar *
 cd %JL%

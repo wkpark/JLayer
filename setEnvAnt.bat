@@ -1,4 +1,3 @@
-SET JAVA_HOME=d:\java\jdk1.4.2
-SET ANT_HOME=d:\java\ant1.6.1
+SET JAVA_HOME=C:\java\jdk1.5.0_15
+SET ANT_HOME=C:\java\ant1.7
 SET PATH=%JAVA_HOME%\bin;%ANT_HOME%\bin
-SET CLASSPATH=%ANT_HOME%\lib\crimson.jar;%ANT_HOME%\lib\jaxp.jar;%ANT_HOME%\lib\ant.jar

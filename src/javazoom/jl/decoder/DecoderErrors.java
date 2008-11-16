@@ -1,4 +1,5 @@
 /*
+ * 09/26/08     throw exception on subbband alloc error: Christopher G. Jennings (cjennings@acm.org)
  * 11/19/04		1.0 moved to LGPL.
  * 01/12/99		Initial version.	mdm@techie.com
  *-----------------------------------------------------------------------
@@ -35,4 +36,10 @@ public interface DecoderErrors extends JavaLayerErrors
 	 * Layer not supported by the decoder. 
 	 */
 	static public final int UNSUPPORTED_LAYER = DECODER_ERROR + 1;
+
+    /**
+	 * Illegal allocation in subband layer. Indicates a corrupt stream.
+	 */
+	static public final int ILLEGAL_SUBBAND_ALLOCATION = DECODER_ERROR + 2;
+
 }

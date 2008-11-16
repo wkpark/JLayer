@@ -1,4 +1,5 @@
 /*
+ * 09/26/08     throw exception on subbband alloc error: Christopher G. Jennings (cjennings@acm.org)
  * 11/19/04		1.0 moved to LGPL.
  * 12/12/99		Initial version.	mdm@techie.com
  *-----------------------------------------------------------------------
@@ -33,6 +34,6 @@ public interface FrameDecoder
 	/**
 	 * Decodes one frame of MPEG audio. 
 	 */
-	public void decodeFrame();
+	public void decodeFrame() throws DecoderException;
 		
 }

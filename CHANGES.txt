@@ -1,5 +1,5 @@
- JLayer 1.0
- JavaZOOM 1999-2005
+ JLayer 1.0.1
+ JavaZOOM 1999-2008
 
  Project Homepage :
    http://www.javazoom.net/javalayer/javalayer.html 
@@ -8,9 +8,13 @@
    http://www.javazoom.net/services/forums/index.jsp
 -----------------------------------------------------
 
+11/16/2008: JLayer 1.0.1
+------------------------
+- Subband allocation bug fix.
+
 
 11/28/2004: JLayer 1.0
--------------------------
+----------------------
 - VBRI frame header (Fraunhofer VBR) support added in Header.java.
 - Frame controls improved. It fixes the following bugs :
     + ArrayIndexOutOfBound Exception in t_43[] array.

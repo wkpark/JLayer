@@ -5,7 +5,7 @@
     <echo message="-------------------------------------------------------------"/>  
     <echo message="------------         BUILDING JLAYER PACKAGE       ----------"/>
     <echo message=""/>
-    <property name="year" value="1999-2005"/>
+    <property name="year" value="1999-2008"/>
     <property name="jars" value="${basedir}"/>
     <property name="sources" value="${basedir}/src"/>
     <property name="classes" value="${basedir}/classes"/>
@@ -26,7 +26,7 @@
   <!-- Archive -->
   <target name="dist" depends="build">
     <echo message="------ Building Jar file"/>
-    <jar jarfile="${jars}/jl1.0.jar" basedir="${classes}" />
+    <jar jarfile="${jars}/jl1.0.1.jar" basedir="${classes}" />
   </target>
 
   <!-- JavaDoc -->
