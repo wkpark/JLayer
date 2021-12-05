@@ -212,4 +212,15 @@ public class JavaSoundAudioDevice extends AudioDeviceBase
 		}
 
 	}
+	
+	public void setLineGain(float gain)
+	{
+    		if (source != null)
+    		{
+        		FloatControl volControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
+        		float newGain = Math.min(Math.max(gain, volControl.getMinimum()), volControl.getMaximum());
+
+        		volControl.setValue(newGain);
+    		}
+	}
 }
